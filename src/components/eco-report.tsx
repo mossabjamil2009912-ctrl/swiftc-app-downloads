@@ -107,13 +107,20 @@ const Sec = ({ n, kicker, title, note, children }: { n: string; kicker: string; 
   </section>
 );
 
+const TOTAL = 4;
+const DOC_NO = `ACT-FS-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}${String(new Date().getDate()).padStart(2, "0")}`;
 const Page = ({ n, children }: { n: number; children: React.ReactNode }) => (
-  <div className="report-page overflow-hidden rounded-xl border shadow-sm" style={{ background: R.paper, borderColor: R.line, breakAfter: n < 5 ? "page" : "auto" }}>
+  <div className="report-page flex flex-col overflow-hidden rounded-xl border shadow-sm sm:aspect-[210/297]" style={{ background: R.paper, borderColor: R.line, breakAfter: n < TOTAL ? "page" : "auto" }}>
     <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3 sm:px-6" style={{ borderColor: R.line }}>
       <div className="flex items-center gap-3"><img src={LOGO} alt="ACTES" className="h-14 w-auto object-contain" /><span dir="ltr" className="hidden text-[11px] font-black tracking-wide sm:inline" style={{ color: "#4b5563" }}>ENERGY SYSTEMS & SOLUTIONS</span></div>
-      <span className="rounded-md border bg-white px-3 py-1.5 text-[11px]" style={{ borderColor: R.line, color: "#4b5563" }}><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: R.green }} />دراسة جدوى تنفيذية • صفحة {n} من 5</span>
+      <span className="rounded-md border bg-white px-3 py-1.5 text-[11px]" style={{ borderColor: R.line, color: "#4b5563" }}><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: R.green }} />دراسة جدوى تنفيذية</span>
     </div>
-    <div className="space-y-5 p-4 sm:p-5">{children}</div>
+    <div className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5">{children}</div>
+    <div className="flex items-center justify-between gap-3 border-t bg-white px-4 py-2 text-[10px] sm:px-6" style={{ borderColor: R.line, color: R.sub }}>
+      <span dir="ltr" className="tabular-nums">{DOC_NO}</span>
+      <span>وثيقة سرية — للاستخدام الخاص بالعميل • {new Date().toLocaleDateString("ar-EG-u-nu-latn")}</span>
+      <b className="tabular-nums" style={{ color: R.ink }}>صفحة {n} من {TOTAL}</b>
+    </div>
   </div>
 );
 
