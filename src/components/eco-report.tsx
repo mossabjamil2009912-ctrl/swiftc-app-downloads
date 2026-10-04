@@ -196,11 +196,19 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
       try { await doc.fonts.ready; } catch { /* ignore */ }
       await Promise.all(Array.from(doc.images).map((im) => im.complete ? null : new Promise((r) => { im.onload = im.onerror = r; setTimeout(r, 3000); })));
       await new Promise((r) => setTimeout(r, 300));
-      // تصغير كل صفحة لتناسب ورقة A4 واحدة بالضبط (194×281 مم ≈ 733×1062px)
-      const pageH = 1058;
+      // تصغير كل صفحة لتناسب ورقة A4 واحدة بالضبط (194×281 مم ≈ 733×1062px) — قياس متكرر لأن تغيير العرض يعيد ترتيب المحتوى
+      const pageH = 1035;
       doc.querySelectorAll<HTMLElement>(".report-page").forEach((p) => {
-        const h = p.scrollHeight;
-        if (h > pageH) { const z = pageH / h; p.style.setProperty("zoom", String(z)); p.style.width = `${194 / z}mm`; p.style.setProperty("width", `${194 / z}mm`, "important"); }
+        let z = 1;
+        for (let i = 0; i < 6; i++) {
+          const h = p.getBoundingClientRect().height;
+          if (h <= pageH) break;
+          z = z * (pageH / h) * 0.98;
+          p.style.setProperty("zoom", String(z));
+          p.style.setProperty("width", `${194 / z}mm`, "important");
+        }
+        p.style.setProperty("overflow", "hidden");
+        p.style.setProperty("break-inside", "avoid");
       });
       await new Promise((r) => setTimeout(r, 200));
       const prevTitle = document.title; document.title = title;
