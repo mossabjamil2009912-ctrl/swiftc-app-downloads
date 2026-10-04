@@ -70,6 +70,27 @@ function ReportModal({ children, onClose }: { children: React.ReactNode; onClose
   );
 }
 
+/** شاشة اسم الجهة: أول خطوة في دراسة الجدوى، ويُعتمد الاسم في ترويسة التقرير واسم الملف. */
+function ProjectNameForm({ value, onChange, onSubmit }: { value: string; onChange: (v: string) => void; onSubmit: (v: string) => void }) {
+  const types = ["مصنع", "شركة", "مؤسسة", "مزرعة", "فندق", "مستشفى", "مجمع سكني", "منزل"];
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); const n = value.trim(); if (n) onSubmit(n); }} className="rounded-lg border border-border bg-muted/35 p-5">
+      <p className="text-sm font-black">بيانات الجهة صاحبة المشروع</p>
+      <p className="mt-1 text-xs leading-6 text-muted-foreground">يرجى كتابة الاسم الرسمي للمشروع أو الشركة أو المصنع، ليُعتمد في ترويسة تقرير دراسة الجدوى واسم الملف.</p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {types.map((t) => (
+          <button key={t} type="button" onClick={() => { const v = value.trim(); onChange(v.startsWith(t) ? v : `${t} ${v.replace(new RegExp(`^(${types.join("|")})\\s*`), "")}`.trimEnd() + " "); }} className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-bold hover:border-primary">{t}</button>
+        ))}
+      </div>
+      <label className="mt-3 grid gap-1">
+        <span className="text-xs font-bold">اسم المشروع / الشركة / المصنع</span>
+        <input autoFocus value={value} onChange={(e) => onChange(e.target.value)} maxLength={80} placeholder="مثال: مصنع أرض الخليج للبلاستيك" className="w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm" />
+      </label>
+      <button type="submit" disabled={!value.trim()} className="mt-3 w-full rounded-md bg-skyline px-6 py-3 text-sm font-bold text-skyline-foreground disabled:opacity-50 sm:w-auto">متابعة</button>
+    </form>
+  );
+}
+
 export function EcoFeasibility({ mode, onSales, onBuy }: { mode: Mode; onSales?: () => void; onBuy?: (loads: string) => void }) {
   const [step, setStep] = useState<"name" | "data" | "goal" | "result">("name");
   const [project, setProject] = useState("");
@@ -109,14 +130,7 @@ export function EcoFeasibility({ mode, onSales, onBuy }: { mode: Mode; onSales?:
   };
 
   if (step === "name") {
-    return (
-      <form onSubmit={(e) => { e.preventDefault(); const n = project.trim(); if (!n) return; try { sessionStorage.setItem(PROJECT_KEY, n); } catch { /* ignore */ } setStep("data"); }} className="rounded-lg border border-border bg-muted/35 p-5">
-        <p className="text-sm font-black">اسم المشروع</p>
-        <p className="mt-1 text-xs text-muted-foreground">يظهر هذا الاسم في رأس تقرير دراسة الجدوى بدلاً من اسم الشركة.</p>
-        <input autoFocus value={project} onChange={(e) => setProject(e.target.value)} placeholder="مثال: مصنع الجزيرة للمواد الغذائية" className="mt-3 w-full rounded-md border border-border bg-background px-3 py-2.5 text-sm" />
-        <button type="submit" disabled={!project.trim()} className="mt-3 w-full rounded-md bg-skyline px-6 py-3 text-sm font-bold text-skyline-foreground disabled:opacity-50 sm:w-auto">متابعة</button>
-      </form>
-    );
+    return <ProjectNameForm value={project} onChange={setProject} onSubmit={(n) => { try { sessionStorage.setItem(PROJECT_KEY, n); } catch { /* ignore */ } setStep("data"); }} />;
   }
 
   if (step === "data") {
@@ -256,7 +270,10 @@ export function EcoFeasibility({ mode, onSales, onBuy }: { mode: Mode; onSales?:
 export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const [f, setF] = useState({ panel: "", panelW: "", panelN: "", inv: "", invKw: "", invN: "", bat: "", batKwh: "", batN: "", cost: "", price: "1.1" });
   const [done, setDone] = useState(false);
-  useEffect(() => { toTop(); }, [done]);
+  const [project, setProject] = useState("");
+  const [named, setNamed] = useState(false);
+  useEffect(() => { try { setProject(sessionStorage.getItem(PROJECT_KEY) ?? ""); } catch { /* ignore */ } }, []);
+  useEffect(() => { toTop(); }, [done, named]);
   const [lm, setLm] = useState<"none" | "loads" | "diesel">("none");
   const [hrs, setHrs] = useState<string[]>(() => Array(24).fill(""));
   const [total, setTotal] = useState("");
@@ -319,10 +336,14 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
     </label>
   );
 
+  if (!named) {
+    return <ProjectNameForm value={project} onChange={setProject} onSubmit={(v) => { setProject(v); try { sessionStorage.setItem(PROJECT_KEY, v); } catch { /* ignore */ } setNamed(true); }} />;
+  }
+
   if (!done) {
     return (
       <form onSubmit={(e) => { e.preventDefault(); if (ok) setDone(true); }} className="rounded-lg border border-border bg-muted/35 p-5">
-        <p className="text-sm font-black">بيانات المنظومة</p>
+        <p className="text-sm font-black">بيانات المنظومة — {project}</p>
         <p className="mt-1 text-xs text-muted-foreground">اكتب مكونات منظومتك الجاهزة وتكلفتها لنحسب جدواها الاقتصادية.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {field("panel", "اسم اللوح", "Suntech")}
@@ -344,7 +365,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
               <button key={k} type="button" onClick={() => setLm(k)} className={`rounded-md border px-3 py-1.5 text-xs font-bold ${lm === k ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>{l}</button>
             ))}
           </div>
-          <LoadPdfImport onApply={(v, c) => { setLm("loads"); setHrs(v); if (c?.trim()) { try { sessionStorage.setItem(PROJECT_KEY, c.trim()); } catch { /* ignore */ } } }} />
+          <LoadPdfImport onApply={(v, c) => { setLm("loads"); setHrs(v); if (c?.trim()) { setProject(c.trim()); try { sessionStorage.setItem(PROJECT_KEY, c.trim()); } catch { /* ignore */ } } }} />
           {lm !== "none" && (
             <div className="mt-3 space-y-3">
               <div className="flex flex-wrap items-end gap-2">
@@ -420,7 +441,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
               <button type="button" onClick={() => setShowReport(false)} aria-label="إغلاق" className="grid size-7 place-items-center rounded-full bg-muted text-navy transition hover:bg-border"><X className="size-4" /></button>
             </div>
             <div className="flex-1 overflow-auto bg-muted p-2 sm:p-4">
-              <EcoReport kw={reportKw} price={dp} system={sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
+              <EcoReport kw={reportKw} price={dp} project={project} system={sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
             </div>
           </div>
         </div>,
