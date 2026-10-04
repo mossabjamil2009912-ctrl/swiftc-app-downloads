@@ -359,7 +359,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
               ["خفض الانبعاثات خلال 25 سنة", `${nf(e.co2 * 25)} طن`],
               ["مكافئ براميل النفط الموفّرة سنوياً", `${nf((e.savedL * 365) / 159)} برميل`],
               ["ساعات إراحة المولد سنوياً", `${nf(offH * 365)} ساعة`],
-              ["خفض تقديري لعمرات وزيوت وفلاتر المولد", `${nf(d.baseHours > 0 ? (offH / Math.max(d.baseHours, 1)) * 100 > 100 ? 100 : (1 - d.genHours / Math.max(d.baseHours, 1)) * 100 : 0)}%`],
+              ["خفض تقديري لعمرات وزيوت وفلاتر المولد", `${nf(Math.max(0, Math.min(100, (1 - d.genHours / Math.max(d.baseHours, 1)) * 100)))}%`],
             ].map(([a, b]) => <tr key={a} className="border-b border-border"><td className="p-2">{a}</td><td className="p-2 font-bold text-navy">{b}</td></tr>)}</tbody></table>
             <table className="w-full text-xs"><tbody>{[
               ["الألواح الشمسية", "IEC 61215 / IEC 61730"],
