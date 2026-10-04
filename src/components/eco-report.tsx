@@ -110,7 +110,7 @@ const Page = ({ n, children }: { n: number; children: React.ReactNode }) => (
       <div className="flex items-center gap-3"><img src={LOGO} alt="ACTES" className="h-14 w-auto object-contain" /><span dir="ltr" className="hidden text-[11px] font-black tracking-wide sm:inline" style={{ color: "#4b5563" }}>ENERGY SYSTEMS & SOLUTIONS</span></div>
       <span className="rounded-md border bg-white px-3 py-1.5 text-[11px]" style={{ borderColor: R.line, color: "#4b5563" }}><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: R.green }} />دراسة جدوى تنفيذية</span>
     </div>
-    <div className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5">{children}</div>
+    <div className="flex flex-1 flex-col gap-5 p-4 sm:p-5">{children}</div>
     <div className="flex items-center justify-between gap-3 border-t bg-white px-4 py-2 text-[10px] sm:px-6" style={{ borderColor: R.line, color: R.sub }}>
       <span dir="ltr" className="tabular-nums">{DOC_NO}</span>
       <span>{new Date().toLocaleDateString("ar-EG-u-nu-latn")}</span>
@@ -275,6 +275,20 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             ))}</tbody>
           </table>
         </Sec>
+
+        <Sec n="03-ب" kicker="المواصفات الفنية" title="مواصفات المعدات المقترحة" note="المواصفات العامة لفئة المعدات المعتمدة؛ تُثبَّت الموديلات النهائية في عرض السعر.">
+          <table className="w-full text-xs">
+            <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">المكوّن</th><th className="p-2 text-right">الكمية / القدرة</th><th className="p-2 text-right">المواصفة الفنية</th></tr></thead>
+            <tbody>{[
+              ["الألواح الشمسية", `${d.panelLabel} — ${nf(d.kwp, 2)} kWp`, "خلايا أحادية البلورة عالية الكفاءة، مقاومة للحرارة والغبار، ضمان أداء طويل الأمد"],
+              ["الإنفرترات الهجينة", `${d.invN} × ${d.invBrand} ${d.unit} kW`, "تحويل نقي (Pure Sine)، متتبع MPPT متعدد، حماية من الغبار والرطوبة، مراقبة عن بعد"],
+              ...(noBat ? [] : [["بطاريات الليثيوم", `${d.batLabel} — ${nf(d.batKwh)} kWh`, `كيمياء LiFePO4 آمنة، عمق تفريغ ${DOD * 100}%، نظام إدارة بطاريات BMS ذكي`]]),
+              ["كابلات DC/AC", "حسب التصميم الهندسي", "كابلات شمسية مقاومة للأشعة فوق البنفسجية، مقاطع محسوبة لفاقد جهد أقل من 2%"],
+              ["الحمايات", "لوحات DC و AC", "قواطع وفيوزات DC، مانعات صواعق SPD، تأريض كامل للمنظومة"],
+              ["الهياكل", "هياكل تثبيت", "حديد مجلفن أو ألمنيوم مقاوم للصدأ وبزاوية ميل مثالية"],
+            ].map(([a, b, c], i) => <tr key={a} className={i % 2 ? "bg-muted/40" : ""}><td className="p-2 font-bold">{a}</td><td className="p-2 text-navy">{b}</td><td className="p-2 text-muted-foreground">{c}</td></tr>)}</tbody>
+          </table>
+        </Sec>
         </Page>
         <Page n={3}>
         {results && <Sec n="04" kicker="النتائج" title="نتائج الجدوى الاقتصادية">
@@ -335,6 +349,25 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
                 ))}
               </div>
             </div>
+          </div>
+        </Sec>
+
+        <Sec n="06-ب" kicker="البيئة والمعايير" title="الأثر البيئي والمطابقة الهندسية">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <table className="w-full text-xs"><tbody>{[
+              ["خفض انبعاثات CO₂ سنوياً", `${nf(e.co2)} طن`],
+              ["خفض الانبعاثات خلال 25 سنة", `${nf(e.co2 * 25)} طن`],
+              ["مكافئ براميل النفط الموفّرة سنوياً", `${nf((e.savedL * 365) / 159)} برميل`],
+              ["ساعات إراحة المولد سنوياً", `${nf(offH * 365)} ساعة`],
+              ["خفض تقديري لعمرات وزيوت وفلاتر المولد", `${nf(Math.max(0, Math.min(100, (1 - d.genHours / Math.max(d.baseHours, 1)) * 100)))}%`],
+            ].map(([a, b]) => <tr key={a} className="border-b border-border"><td className="p-2">{a}</td><td className="p-2 font-bold text-navy">{b}</td></tr>)}</tbody></table>
+            <table className="w-full text-xs"><tbody>{[
+              ["الألواح الشمسية", "IEC 61215 / IEC 61730"],
+              ["الإنفرترات", "IEC 62109 / IEC 62116"],
+              ["بطاريات الليثيوم", "IEC 62619 / UN38.3"],
+              ["الكابلات والحمايات", "IEC 62930 / IEC 61643"],
+              ["مراقبة الأداء", "IEC 61724"],
+            ].map(([a, b]) => <tr key={a} className="border-b border-border"><td className="p-2">{a}</td><td dir="ltr" className="p-2 text-right font-bold text-navy">{b}</td></tr>)}</tbody></table>
           </div>
         </Sec>
         </Page>
