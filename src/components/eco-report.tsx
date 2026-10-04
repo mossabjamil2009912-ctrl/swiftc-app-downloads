@@ -118,7 +118,7 @@ const Page = ({ n, children }: { n: number; children: React.ReactNode }) => (
     <div className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5">{children}</div>
     <div className="flex items-center justify-between gap-3 border-t bg-white px-4 py-2 text-[10px] sm:px-6" style={{ borderColor: R.line, color: R.sub }}>
       <span dir="ltr" className="tabular-nums">{DOC_NO}</span>
-      <span>وثيقة سرية — للاستخدام الخاص بالعميل • {new Date().toLocaleDateString("ar-EG-u-nu-latn")}</span>
+      <span>{new Date().toLocaleDateString("ar-EG-u-nu-latn")}</span>
       <b className="tabular-nums" style={{ color: R.ink }}>صفحة {n} من {TOTAL}</b>
     </div>
   </div>
@@ -371,12 +371,6 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           </div>
         </Sec>
         </div>
-        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_1fr]">
-          {[["إعداد المهندس المختص", "الاسم / التوقيع"], ["اعتماد ACTES", "الختم الرسمي"], ["موافقة العميل", "الاسم / التوقيع / التاريخ"]].map(([t, s2]) => (
-            <div key={t} className="rounded-lg border bg-white p-3" style={{ borderColor: R.line }}><p className="text-[12px] font-black">{t}</p><div className="mt-10 border-t border-dashed pt-1 text-[10px]" style={{ borderColor: R.sub, color: R.sub }}>{s2}</div></div>
-          ))}
-        </div>
-        <p className="text-center text-[11px]" style={{ color: R.sub }}>الأرقام تقديرية: {PSH} ساعات ذروة شمسية، {KWH_PER_L} kWh لكل لتر ديزل.</p>
         <footer className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-5 py-4" style={{ background: R.ink }}>
           <div className="flex items-center gap-3"><span className="rounded bg-white px-2 py-1"><img src={LOGO} alt="ACTES" className="h-12 w-auto" /></span><b dir="ltr" className="text-sm" style={{ color: "#fff" }}>ACTES Energy Systems & Solutions</b></div>
           <span className="text-[12px]" style={{ color: "#9ca3af" }}>من إعداد شركة أكتس لأنظمة الطاقة وحلولها</span>
