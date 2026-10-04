@@ -41,6 +41,8 @@ function design(kw: number[], sys?: CustomSystem, target?: number) {
   const cap = batKwh, min = cap * (1 - DOD);
   let soc = cap;
   let hours: Hour[] = [];
+  // المولد يعمل بفترة واحدة متصلة: يقلع عند نفاد البطارية ويستمر حتى شحنها ≥95% أو شروق الشمس
+  let running = false;
   for (let pass = 0; pass < 3; pass++) {
     hours = [];
     for (let h = 0; h < 24; h++) {
@@ -49,10 +51,12 @@ function design(kw: number[], sys?: CustomSystem, target?: number) {
       let rest = load - direct, charge = 0, batOut = 0, gen = 0;
       const surplus = pv[h]! - direct;
       if (surplus > 0) { charge = Math.min(surplus, cap - soc); soc += charge; }
-      if (rest > 0) { batOut = Math.min(rest, Math.max(0, soc - min)); soc -= batOut; rest -= batOut; }
-      if (rest > 0.001) {
+      if (running && (rest <= 0.001 || (cap > 0 && soc >= cap * 0.95))) running = false;
+      if (!running && rest > 0) { batOut = Math.min(rest, Math.max(0, soc - min)); soc -= batOut; rest -= batOut; }
+      if (!running && rest > 0.001) running = true;
+      if (running) {
         gen = rest;
-        // المولد يعيد شحن البطاريات أثناء تشغيله
+        // شحن البطاريات من المولد بمعدل مستقر (≈25% من السعة/ساعة)
         const top = Math.min(cap - soc, cap * 0.25); soc += top; gen += top;
       }
       hours.push({ h, load, pv: pv[h]!, direct, batOut, charge, gen, soc: cap > 0 ? (soc / cap) * 100 : 0 });
