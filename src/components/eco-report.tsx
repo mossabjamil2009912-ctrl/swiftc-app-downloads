@@ -150,11 +150,14 @@ const Legend = ({ items }: { items: [string, string][] }) => (
 export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, project, target, scenarioLabel, autoDownload, onDownloaded, hideActions, results }: { results?: EcoResults | undefined; kw: number[]; price: number; system?: CustomSystem | undefined; onBuy?: (() => void) | undefined; onEdit?: (() => void) | undefined; onSales?: (() => void) | undefined; project?: string | undefined; target?: number | undefined; scenarioLabel?: string | undefined; autoDownload?: boolean | undefined; onDownloaded?: (() => void) | undefined; hideActions?: boolean | undefined }) {
   const d = useMemo(() => design(kw, system, target), [kw, system, target]);
   const e0 = econ(d.total, d.genE, d.capex, price0);
-  const e = results ? (() => { const savedL = results.liters / 365; const newL = Math.max(0, e0.baseL - savedL); return { ...e0, savedL, newL, saving: results.saving, months: results.payback ? results.payback * 12 : null, sav5: results.saving * 5, net5: results.saving * 5 - d.capex, co2: (results.liters * CO2_PER_L) / 1000, cut: e0.baseL > 0 ? Math.min(100, (savedL / e0.baseL) * 100) : 0 }; })() : e0;
+  const e1 = results ? (() => { const savedL = results.liters / 365; const newL = Math.max(0, e0.baseL - savedL); return { ...e0, savedL, newL, saving: results.saving, months: results.payback ? results.payback * 12 : null, sav5: results.saving * 5, net5: results.saving * 5 - d.capex, co2: (results.liters * CO2_PER_L) / 1000, cut: e0.baseL > 0 ? Math.min(100, (savedL / e0.baseL) * 100) : 0 }; })() : e0;
+  const e = { ...e1, months: (() => { let cum = -d.capex; for (let y = 1; y <= 30; y++) { const net = e1.saving * Math.pow(0.995, y - 1) - d.capex * 0.01; if (net <= 0) return null; const prev = cum; cum += net; if (cum >= 0) return (y - 1 + Math.abs(prev) / net) * 12; } return null; })() };
   const cleanKwhY = d.total * (d.clean / 100) * 365;
   const lcoe = cleanKwhY > 0 ? d.capex / (cleanKwhY * 20) : 0;
   const roi = d.capex > 0 ? (e.saving / d.capex) * 100 : 0;
-  const sens = [0.7, 0.85, 1, 1.15, 1.3].map((f) => { const pr = price0 * f; const sv = e.savedL * 365 * pr; return { pr, sv, m: sv > 0 ? (d.capex / sv) * 12 : null, n5: sv * 5 - d.capex, cur: f === 1 }; });
+  // نفس معادلة الاسترداد في كل الصفحات: تدفق نقدي سنوي مع تدهور الألواح 0.5% وصيانة 1% من التكلفة
+  const pb = (sv: number) => { let cum = -d.capex; for (let y = 1; y <= 30; y++) { const net = sv * Math.pow(0.995, y - 1) - d.capex * 0.01; if (net <= 0) return null; const prev = cum; cum += net; if (cum >= 0) return (y - 1 + Math.abs(prev) / net) * 12; } return null; };
+  const sens = [0.7, 0.85, 1, 1.15, 1.3].map((f) => { const sv = e.saving * f; return { pr: price0 * f, sv, m: f === 1 ? e.months : pb(sv), n5: sv * 5 - d.capex, cur: f === 1 }; });
   const ref = useRef<HTMLDivElement>(null);
   const offH = 24 - d.genHours;
   const yMax = (v: number) => { const m = Math.max(v, 1); const p = Math.pow(10, Math.floor(Math.log10(m))); return Math.ceil(m / p) * p; };
@@ -316,7 +319,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             ["الإنتاج اليومي المتوقع", `${nf(results.dailyKwh, 1)} kWh`], ["الإنتاج السنوي", `${nf(results.yearKwh)} kWh`],
             ...(results.loadDay ? [["الحمل اليومي", `${nf(results.loadDay, 1)} kWh`], ["نسبة تغطية الحمل", `${results.coverage ?? 0}%`]] : []),
             ["الديزل الموفّر سنوياً", `${nf(results.liters)} لتر`], ["التوفير السنوي", `${nf(results.saving)} $`],
-            ["فترة الاسترداد", results.payback ? `${nf(results.payback, 1)} سنة` : "—"], [`صافي الربح خلال ${results.years} سنة`, `${nf(results.cum)} $`],
+            ["فترة الاسترداد", fmtM(e.months)], [`صافي الربح خلال ${results.years} سنة`, `${nf(results.cum)} $`],
             ["العائد على الاستثمار", `${results.roi}%`], ["تكلفة الواط", results.wattCost],
           ] as [string, string][]).map(([a, b]) => <tr key={a} className="border-b border-border"><td className="p-2">{a}</td><td className="p-2 font-bold tabular-nums text-navy">{b}</td></tr>)}</tbody></table>
           <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px]">{results.rows.filter((r) => r.y % 5 === 0 || r.y <= 5).map((r) => (
