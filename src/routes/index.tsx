@@ -1,3 +1,4 @@
+import { LoadPdfImport } from "@/components/load-pdf-import";
 import { useCorporateMode } from "@/lib/corporate-mode";
 import { createFileRoute } from "@tanstack/react-router";
 import actesLogo from "@/assets/actes-logo-full.webp";
@@ -2315,6 +2316,7 @@ function HourlyLoadEntry({ onSubmit }: { onSubmit: (value: string) => void }) {
     >
       <p className="text-sm font-black">بيانات الاحمال</p>
       <p className="mt-1 text-xs text-muted-foreground">اكتب الحمل المتوقع في كل ساعة من اليوم بالكيلووات (kW) — 24 خانة تغطي اليوم كاملاً</p>
+      <LoadPdfImport onApply={(v) => { setSame(false); setValues(v); }} />
       <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs font-bold">
         <input type="checkbox" checked={same} onChange={(e) => { const on = e.target.checked; setSame(on); if (on) { const v = values.find((x) => x.trim() !== "") ?? ""; setValues(Array(24).fill(v)); } }} className="size-4 accent-primary" />
         اعتماد نفس القيمة لكل الساعات
