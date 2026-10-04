@@ -182,7 +182,11 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
       const css = `@page{size:A4;margin:8mm}html,body{background:#fff !important;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
         body{width:194mm}.report-page{width:194mm !important;max-width:none !important;margin:0 !important;box-shadow:none !important;break-after:page;page-break-after:always;min-height:0 !important}
         .report-page:last-child{break-after:auto;page-break-after:auto}[dir=rtl],[dir=rtl] *{font-family:Tajawal,'IBM Plex Sans Arabic',sans-serif}`;
-      const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><base href="${location.origin}/"><title>${title.replace(/</g, "")}</title>${heads}<style>${css}</style></head><body dir="rtl">${node.outerHTML}</body></html>`;
+      // الشعار كبيانات مضمّنة حتى يظهر دائماً في الطباعة
+      let logoData = LOGO;
+      try { const b = await (await fetch(LOGO)).blob(); logoData = await new Promise<string>((r) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result)); fr.readAsDataURL(b); }); } catch { /* ignore */ }
+      const body = node.outerHTML.split(`src="${LOGO}"`).join(`src="${logoData}"`);
+      const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><base href="${location.origin}/"><title>${title.replace(/</g, "")}</title>${heads}<style>${css}</style></head><body dir="rtl">${body}</body></html>`;
       const frame = document.createElement("iframe");
       frame.setAttribute("style", "position:fixed;right:0;bottom:0;width:794px;height:1123px;border:0;opacity:0;pointer-events:none;z-index:-1");
       document.body.appendChild(frame);
@@ -190,7 +194,15 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
       const win = frame.contentWindow!;
       await new Promise<void>((r) => { if (doc.readyState === "complete") r(); else frame.onload = () => r(); setTimeout(r, 3000); });
       try { await doc.fonts.ready; } catch { /* ignore */ }
+      await Promise.all(Array.from(doc.images).map((im) => im.complete ? null : new Promise((r) => { im.onload = im.onerror = r; setTimeout(r, 3000); })));
       await new Promise((r) => setTimeout(r, 300));
+      // تصغير كل صفحة لتناسب ورقة A4 واحدة بالضبط (194×281 مم ≈ 733×1062px)
+      const pageH = 1058;
+      doc.querySelectorAll<HTMLElement>(".report-page").forEach((p) => {
+        const h = p.scrollHeight;
+        if (h > pageH) { const z = pageH / h; p.style.setProperty("zoom", String(z)); p.style.width = `${194 / z}mm`; p.style.setProperty("width", `${194 / z}mm`, "important"); }
+      });
+      await new Promise((r) => setTimeout(r, 200));
       const prevTitle = document.title; document.title = title;
       win.focus(); win.print();
       setTimeout(() => { document.title = prevTitle; frame.remove(); }, 60000);
