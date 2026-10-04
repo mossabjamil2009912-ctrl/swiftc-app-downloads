@@ -228,6 +228,11 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             <Kpi t="فترة الاسترداد" v={fmtM(e.months)} s={e.months ? `≈ ${nf(e.months / 12, 2)} سنة` : undefined} />
             <Kpi t="صافي التوفير خلال 5 سنوات" v={`${nf(e.net5)} $`} s="توفير تراكمي" />
             <Kpi t="خفض انبعاثات الكربون" v={`${nf(e.co2)} طن CO₂/سنة`} s="أثر بيئي مباشر" />
+            <Kpi t="العائد السنوي على الاستثمار" v={`${nf(roi, 1)} %`} s="ROI سنوي" />
+            <Kpi t="تكلفة الكيلوواط النظيف" v={`${nf(lcoe, 3)} $/kWh`} s="LCOE على 20 سنة" />
+            <Kpi t="ما يعادل زراعة" v={`${nf(e.co2 * 45)} شجرة`} s="مكافئ بيئي سنوي" />
+            <Kpi t="صافي القيمة خلال 20 سنة" v={`${nf(e.saving * 20 - d.capex)} $`} s="بدون احتساب التضخم" />
+            <Kpi t="الطاقة النظيفة السنوية" v={`${nf(cleanKwhY / 1000, 1)} MWh`} s="من الشمس والبطاريات" />
           </div>
         </Sec>
         </Page>
