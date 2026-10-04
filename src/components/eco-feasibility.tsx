@@ -126,7 +126,7 @@ export function EcoFeasibility({ mode, onSales, onBuy }: { mode: Mode; onSales?:
         <p className="mt-1 text-xs text-muted-foreground">
           {mode === "diesel" ? "اكتب استهلاك المولد من الديزل في كل ساعة باللتر — اكتب 0 للساعات التي لا يعمل فيها" : "اكتب الحمل المتوقع في كل ساعة بالكيلووات (kW) — اكتب 0 للساعات بلا أحمال"}
         </p>
-        {mode === "loads" && <LoadPdfImport onApply={(v) => { setSame(false); setValues(v); }} />}
+        {mode === "loads" && <LoadPdfImport onApply={(v, c) => { setSame(false); setValues(v); if (c?.trim()) { setProject(c.trim()); try { sessionStorage.setItem(PROJECT_KEY, c.trim()); } catch { /* ignore */ } } }} />}
         <div className="mt-3 rounded-md border border-dashed border-border bg-background p-3">
           <p className="text-xs font-bold">{mode === "diesel" ? "أو اكتب استهلاك الديزل اليومي" : "أو اكتب الحمل اليومي الكلي"}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -344,7 +344,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
               <button key={k} type="button" onClick={() => setLm(k)} className={`rounded-md border px-3 py-1.5 text-xs font-bold ${lm === k ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>{l}</button>
             ))}
           </div>
-          <LoadPdfImport onApply={(v) => { setLm("loads"); setHrs(v); }} />
+          <LoadPdfImport onApply={(v, c) => { setLm("loads"); setHrs(v); if (c?.trim()) { try { sessionStorage.setItem(PROJECT_KEY, c.trim()); } catch { /* ignore */ } } }} />
           {lm !== "none" && (
             <div className="mt-3 space-y-3">
               <div className="flex flex-wrap items-end gap-2">

@@ -183,7 +183,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
       await document.fonts.ready;
       const pages = Array.from(node.querySelectorAll<HTMLElement>(".report-page"));
       for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i]!, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 1000, onclone: (doc: Document) => { const st = doc.createElement("style"); st.textContent = "*{letter-spacing:0 !important;font-feature-settings:normal !important;text-rendering:geometricPrecision !important}"; doc.head.appendChild(st); } });
+        const canvas = await html2canvas(pages[i]!, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 1000, onclone: (doc: Document) => { const st = doc.createElement("style"); st.textContent = "*{letter-spacing:0 !important;word-spacing:normal !important;text-rendering:optimizeLegibility !important}[dir=rtl],[dir=rtl] *{font-family:Tajawal,"IBM Plex Sans Arabic",sans-serif !important;line-height:1.6}"; doc.head.appendChild(st); } });
         const pw = 210, ph = 297, m = 6;
         let w = pw - m * 2, h = (canvas.height * w) / canvas.width;
         if (h > ph - m * 2) { h = ph - m * 2; w = (canvas.width * h) / canvas.height; }
@@ -203,8 +203,8 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
         <Page n={1}>
           <div className="grid items-start gap-6 lg:grid-cols-[1fr_380px]">
             <div>
-              <h2 className="text-3xl font-black leading-tight sm:text-5xl" style={{ color: R.ink }}>{project || "منظومة الطاقة الشمسية والتخزين"}</h2>
-              <p className="mt-2 text-3xl font-black leading-tight sm:text-5xl" style={{ color: R.red }}>{d.custom ? "منظومة العميل" : scenarioLabel || "المنظومة المقترحة"}</p>
+              <h2 className="text-2xl font-extrabold leading-snug sm:text-4xl" style={{ color: R.ink }}>{project || "منظومة الطاقة الشمسية والتخزين"}</h2>
+              <p className="mt-2 text-2xl font-extrabold leading-snug sm:text-4xl" style={{ color: R.red }}>{d.custom ? "منظومة العميل" : scenarioLabel || "المنظومة المقترحة"}</p>
               <p className="mt-4 text-sm" style={{ color: R.sub }}>دراسة فنية ومالية تنفيذية مقدمة من ACTES • إصدار {new Date().getFullYear()}</p>
             </div>
             <div className="rounded-xl border bg-white p-5 shadow-md lg:order-first" style={{ borderColor: R.line, borderTop: `5px solid ${R.red}` }}>
