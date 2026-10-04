@@ -178,25 +178,27 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
     const node = ref.current; if (!node || busy) return;
     setBusy(true);
     try {
-      const [{ jsPDF }, { default: html2canvas }] = await Promise.all([import("jspdf"), import("html2canvas-pro")]);
-      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-      await document.fonts.ready;
-      const pages = Array.from(node.querySelectorAll<HTMLElement>(".report-page"));
-      const prev = node.getAttribute("style") ?? "";
-      node.setAttribute("style", prev + ";position:fixed;left:-10000px;top:0;width:794px;max-width:none;");
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-      try {
-      for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i]!, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 1100, scrollX: 0, scrollY: 0, onclone: (doc: Document, el: HTMLElement) => { const st = doc.createElement("style"); st.textContent = "*{letter-spacing:normal !important}[dir=rtl],[dir=rtl] *{font-family:Tajawal,'IBM Plex Sans Arabic',sans-serif !important}"; doc.head.appendChild(st); el.style.width = "794px"; el.style.maxWidth = "794px"; el.style.minWidth = "794px"; el.style.height = "auto"; el.style.overflow = "visible"; let p = el.parentElement; while (p) { p.style.width = "auto"; p.style.maxWidth = "none"; p.style.overflow = "visible"; p = p.parentElement; } } });
-        const pw = 210, ph = 297, m = 6;
-        let w = pw - m * 2, h = (canvas.height * w) / canvas.width;
-        if (h > ph - m * 2) { h = ph - m * 2; w = (canvas.width * h) / canvas.height; }
-        if (i) pdf.addPage();
-        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", (pw - w) / 2, m, w, h);
-      }
-      } finally { node.setAttribute("style", prev); }
       const name = (project || "ACTES").replace(/[\\/:*?"<>|]+/g, " ").trim();
-      pdf.save(`دراسة_الجدوى_الاقتصادية-${name}${scenarioLabel ? `-${scenarioLabel}` : ""}.pdf`);
+      const title = `دراسة_الجدوى_الاقتصادية-${name}${scenarioLabel ? `-${scenarioLabel}` : ""}`;
+      const heads = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map((n) => {
+        if (n instanceof HTMLLinkElement) return `<link rel="stylesheet" href="${new URL(n.href, location.href).href}">`;
+        return n.outerHTML;
+      }).join("");
+      const css = `@page{size:A4;margin:8mm}html,body{background:#fff !important;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{width:194mm}.report-page{width:194mm !important;max-width:none !important;margin:0 !important;box-shadow:none !important;break-after:page;page-break-after:always;break-inside:avoid}
+        .report-page:last-child{break-after:auto;page-break-after:auto}[dir=rtl],[dir=rtl] *{font-family:Tajawal,'IBM Plex Sans Arabic',sans-serif}`;
+      const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><base href="${location.origin}/"><title>${title.replace(/</g, "")}</title>${heads}<style>${css}</style></head><body dir="rtl">${node.outerHTML}</body></html>`;
+      const frame = document.createElement("iframe");
+      frame.setAttribute("style", "position:fixed;right:0;bottom:0;width:794px;height:1123px;border:0;opacity:0;pointer-events:none;z-index:-1");
+      document.body.appendChild(frame);
+      const doc = frame.contentDocument!; doc.open(); doc.write(html); doc.close();
+      const win = frame.contentWindow!;
+      await new Promise<void>((r) => { if (doc.readyState === "complete") r(); else frame.onload = () => r(); setTimeout(r, 3000); });
+      try { await doc.fonts.ready; } catch { /* ignore */ }
+      await new Promise((r) => setTimeout(r, 300));
+      const prevTitle = document.title; document.title = title;
+      win.focus(); win.print();
+      setTimeout(() => { document.title = prevTitle; frame.remove(); }, 60000);
     } finally { setBusy(false); onDownloaded?.(); }
   };
   const started = useRef(false);
