@@ -183,7 +183,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
       await document.fonts.ready;
       const pages = Array.from(node.querySelectorAll<HTMLElement>(".report-page"));
       for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i]!, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 1000, onclone: (doc: Document) => { const st = doc.createElement("style"); st.textContent = "*{letter-spacing:0 !important;word-spacing:normal !important;text-rendering:optimizeLegibility !important}[dir=rtl],[dir=rtl] *{font-family:Tajawal,"IBM Plex Sans Arabic",sans-serif !important;line-height:1.6}"; doc.head.appendChild(st); } });
+        const canvas = await html2canvas(pages[i]!, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 1000, onclone: (doc: Document) => { const st = doc.createElement("style"); st.textContent = "*{letter-spacing:0 !important;word-spacing:normal !important;text-rendering:optimizeLegibility !important}[dir=rtl],[dir=rtl] *{font-family:Tajawal,'IBM Plex Sans Arabic',sans-serif !important;line-height:1.6}"; doc.head.appendChild(st); } });
         const pw = 210, ph = 297, m = 6;
         let w = pw - m * 2, h = (canvas.height * w) / canvas.width;
         if (h > ph - m * 2) { h = ph - m * 2; w = (canvas.width * h) / canvas.height; }
