@@ -441,7 +441,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
               <button type="button" onClick={() => setShowReport(false)} aria-label="إغلاق" className="grid size-7 place-items-center rounded-full bg-muted text-navy transition hover:bg-border"><X className="size-4" /></button>
             </div>
             <div className="flex-1 overflow-auto bg-muted p-2 sm:p-4">
-              <EcoReport kw={reportKw} price={dp} project={project} system={sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
+              <EcoReport kw={reportKw} price={dp} project={project} system={sys} results={{ dailyKwh, yearKwh, loadDay: useLoads ? loadDay : null, coverage, liters, saving, payback, cum, roi, wattCost: kwp > 0 ? `${nf(capex / (kwp * 1000), 2)} $/W` : "—", years: YEARS, rows }} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
             </div>
           </div>
         </div>,

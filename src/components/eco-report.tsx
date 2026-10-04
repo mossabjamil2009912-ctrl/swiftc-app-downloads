@@ -11,6 +11,7 @@ const C = { sun: "#f5a01e", bat: "#15803d", gen: "#7f1d1d", load: "#e60012", gri
 
 type Hour = { h: number; load: number; pv: number; direct: number; batOut: number; charge: number; gen: number; soc: number };
 
+export type EcoResults = { dailyKwh: number; yearKwh: number; loadDay: number | null; coverage: number | null; liters: number; saving: number; payback: number | null; cum: number; roi: number; wattCost: string; years: number; rows: { y: number; cum: number }[] };
 export type CustomSystem = { panelName: string; panelW: number; panels: number; invName: string; invKw: number; invN: number; batName: string; batUnit: number; batN: number; capex: number };
 
 function design(kw: number[], sys?: CustomSystem, target?: number) {
@@ -87,21 +88,6 @@ function econ(total: number, genE: number, capex: number, price: number) {
   return { baseL, newL, savedL, saving, months: saving > 0 ? (capex / saving) * 12 : null, net5: saving * 5 - capex, sav5: saving * 5, co2: (savedL * 365 * CO2_PER_L) / 1000, cut: baseL > 0 ? (savedL / baseL) * 100 : 0 };
 }
 
-function schedule(hours: Hour[]) {
-  const tag = (x: Hour) => x.gen > 0.001 ? "gen" : x.pv > 0 && x.charge > 0 ? "sunc" : x.pv > 0 ? "sund" : x.load > 0 ? "bat" : "off";
-  const text: Record<string, [string, string]> = {
-    gen: ["المولد يغذي الحمل ويعيد شحن البطاريات", "يعمل"],
-    sunc: ["الشمس مباشرة + شحن البطاريات", "المولد متوقف"],
-    sund: ["الشمس + تفريغ البطاريات", "المولد متوقف"],
-    bat: ["تفريغ البطاريات للأحمال", "المولد متوقف"],
-    off: ["لا توجد أحمال", "متوقف"],
-  };
-  const segs: { from: number; to: number; k: string }[] = [];
-  hours.forEach((x) => { const k = tag(x); const last = segs[segs.length - 1]; if (last && last.k === k) last.to = x.h + 1; else segs.push({ from: x.h, to: x.h + 1, k }); });
-  if (segs.length > 1 && segs[0]!.k === segs[segs.length - 1]!.k) { const f = segs.shift()!; segs[segs.length - 1]!.to = f.to + 24; }
-  return segs.map((s) => ({ range: `${hh(s.from)} – ${hh(s.to)}`, src: text[s.k]![0], gen: s.k === "gen" ? `${s.to - s.from} ساعات تشغيل` : text[s.k]![1], k: s.k }));
-}
-
 const R = { red: "#e60012", ink: "#14171c", sub: "#6b7280", line: "#e5e7eb", paper: "#f7f8fa", mint: "#e8f5ee", green: "#15803d" };
 const LOGO = "/brand/actes-logo-report.png";
 
@@ -119,7 +105,7 @@ const Sec = ({ n, kicker, title, note, children }: { n: string; kicker: string; 
 const TOTAL = 4;
 const DOC_NO = `ACT-FS-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}${String(new Date().getDate()).padStart(2, "0")}`;
 const Page = ({ n, children }: { n: number; children: React.ReactNode }) => (
-  <div className="report-page flex flex-col overflow-hidden rounded-xl border shadow-sm sm:aspect-[210/297]" style={{ background: R.paper, borderColor: R.line, breakAfter: n < TOTAL ? "page" : "auto" }}>
+  <div className="report-page flex flex-col rounded-xl border shadow-sm sm:min-h-[1123px]" style={{ background: R.paper, borderColor: R.line, breakAfter: n < TOTAL ? "page" : "auto" }}>
     <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3 sm:px-6" style={{ borderColor: R.line }}>
       <div className="flex items-center gap-3"><img src={LOGO} alt="ACTES" className="h-14 w-auto object-contain" /><span dir="ltr" className="hidden text-[11px] font-black tracking-wide sm:inline" style={{ color: "#4b5563" }}>ENERGY SYSTEMS & SOLUTIONS</span></div>
       <span className="rounded-md border bg-white px-3 py-1.5 text-[11px]" style={{ borderColor: R.line, color: "#4b5563" }}><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: R.green }} />دراسة جدوى تنفيذية</span>
@@ -161,14 +147,14 @@ const Legend = ({ items }: { items: [string, string][] }) => (
   <div className="mt-2 flex flex-wrap gap-3 text-[11px]">{items.map(([c, l]) => <span key={l} className="inline-flex items-center gap-1.5"><i className="inline-block size-2.5 rounded-sm" style={{ background: c }} />{l}</span>)}</div>
 );
 
-export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, project, target, scenarioLabel, autoDownload, onDownloaded, hideActions }: { kw: number[]; price: number; system?: CustomSystem | undefined; onBuy?: (() => void) | undefined; onEdit?: (() => void) | undefined; onSales?: (() => void) | undefined; project?: string | undefined; target?: number | undefined; scenarioLabel?: string | undefined; autoDownload?: boolean | undefined; onDownloaded?: (() => void) | undefined; hideActions?: boolean | undefined }) {
+export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, project, target, scenarioLabel, autoDownload, onDownloaded, hideActions, results }: { results?: EcoResults | undefined; kw: number[]; price: number; system?: CustomSystem | undefined; onBuy?: (() => void) | undefined; onEdit?: (() => void) | undefined; onSales?: (() => void) | undefined; project?: string | undefined; target?: number | undefined; scenarioLabel?: string | undefined; autoDownload?: boolean | undefined; onDownloaded?: (() => void) | undefined; hideActions?: boolean | undefined }) {
   const d = useMemo(() => design(kw, system, target), [kw, system, target]);
-  const e = econ(d.total, d.genE, d.capex, price0);
+  const e0 = econ(d.total, d.genE, d.capex, price0);
+  const e = results ? (() => { const savedL = results.liters / 365; const newL = Math.max(0, e0.baseL - savedL); return { ...e0, savedL, newL, saving: results.saving, months: results.payback ? results.payback * 12 : null, sav5: results.saving * 5, net5: results.saving * 5 - d.capex, co2: (results.liters * CO2_PER_L) / 1000, cut: e0.baseL > 0 ? Math.min(100, (savedL / e0.baseL) * 100) : 0 }; })() : e0;
   const cleanKwhY = d.total * (d.clean / 100) * 365;
   const lcoe = cleanKwhY > 0 ? d.capex / (cleanKwhY * 20) : 0;
   const roi = d.capex > 0 ? (e.saving / d.capex) * 100 : 0;
   const sens = [0.7, 0.85, 1, 1.15, 1.3].map((f) => { const pr = price0 * f; const sv = e.savedL * 365 * pr; return { pr, sv, m: sv > 0 ? (d.capex / sv) * 12 : null, n5: sv * 5 - d.capex, cur: f === 1 }; });
-  const sched = schedule(d.hours);
   const ref = useRef<HTMLDivElement>(null);
   const offH = 24 - d.genHours;
   const yMax = (v: number) => { const m = Math.max(v, 1); const p = Math.pow(10, Math.floor(Math.log10(m))); return Math.ceil(m / p) * p; };
@@ -194,7 +180,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
         return n.outerHTML;
       }).join("");
       const css = `@page{size:A4;margin:8mm}html,body{background:#fff !important;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        body{width:194mm}.report-page{width:194mm !important;max-width:none !important;margin:0 !important;box-shadow:none !important;break-after:page;page-break-after:always;break-inside:avoid}
+        body{width:194mm}.report-page{width:194mm !important;max-width:none !important;margin:0 !important;box-shadow:none !important;break-after:page;page-break-after:always;min-height:0 !important}
         .report-page:last-child{break-after:auto;page-break-after:auto}[dir=rtl],[dir=rtl] *{font-family:Tajawal,'IBM Plex Sans Arabic',sans-serif}`;
       const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><base href="${location.origin}/"><title>${title.replace(/</g, "")}</title>${heads}<style>${css}</style></head><body dir="rtl">${node.outerHTML}</body></html>`;
       const frame = document.createElement("iframe");
@@ -291,14 +277,18 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
         </Sec>
         </Page>
         <Page n={3}>
-        <Sec n="04" kicker="برنامج التشغيل" title="الفترات التشغيلية اليومية" note={`توزيع مصادر التغذية على مدار اليوم: ${d.sunH} ساعات شمس مباشرة، ${d.batH} ساعات بطاريات، ${d.genHours} ساعات مولد.`}>
-          <table className="w-full text-xs">
-            <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">الفترة</th><th className="p-2 text-right">مصادر التغذية / النشاط</th><th className="p-2 text-right">حالة المولد</th></tr></thead>
-            <tbody>{sched.map((s) => (
-              <tr key={s.range} className="border-b border-border"><td className="p-2 font-bold tabular-nums" dir="ltr">{s.range}</td><td className="p-2"><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: s.k === "gen" ? C.gen : s.k === "bat" ? C.bat : C.sun }} />{s.src}</td><td className={`p-2 font-bold ${s.k === "gen" ? "text-destructive" : "text-energy"}`}>{s.gen}</td></tr>
-            ))}</tbody>
-          </table>
-        </Sec>
+        {results && <Sec n="04" kicker="النتائج" title="نتائج الجدوى الاقتصادية">
+          <table className="w-full text-xs"><tbody>{([
+            ["الإنتاج اليومي المتوقع", `${nf(results.dailyKwh, 1)} kWh`], ["الإنتاج السنوي", `${nf(results.yearKwh)} kWh`],
+            ...(results.loadDay ? [["الحمل اليومي", `${nf(results.loadDay, 1)} kWh`], ["نسبة تغطية الحمل", `${results.coverage ?? 0}%`]] : []),
+            ["الديزل الموفّر سنوياً", `${nf(results.liters)} لتر`], ["التوفير السنوي", `${nf(results.saving)} $`],
+            ["فترة الاسترداد", results.payback ? `${nf(results.payback, 1)} سنة` : "—"], [`صافي الربح خلال ${results.years} سنة`, `${nf(results.cum)} $`],
+            ["العائد على الاستثمار", `${results.roi}%`], ["تكلفة الواط", results.wattCost],
+          ] as [string, string][]).map(([a, b]) => <tr key={a} className="border-b border-border"><td className="p-2">{a}</td><td className="p-2 font-bold tabular-nums text-navy">{b}</td></tr>)}</tbody></table>
+          <div className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px]">{results.rows.filter((r) => r.y % 5 === 0 || r.y <= 5).map((r) => (
+            <div key={r.y} className="rounded p-1" style={{ background: r.cum >= 0 ? R.mint : "#f1f2f4" }}>سنة {r.y}<br /><b className="tabular-nums">{nf(r.cum)}</b></div>
+          ))}</div>
+        </Sec>}
 
         <Sec n="05" kicker="ساعات التغطية" title="كم تكفي المنظومة نهاراً وليلاً؟">
           <div className="grid gap-4 lg:grid-cols-2">
