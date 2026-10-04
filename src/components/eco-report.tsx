@@ -105,7 +105,7 @@ const Sec = ({ n, kicker, title, note, children }: { n: string; kicker: string; 
 const TOTAL = 4;
 const DOC_NO = `ACT-FS-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}${String(new Date().getDate()).padStart(2, "0")}`;
 const Page = ({ n, children }: { n: number; children: React.ReactNode }) => (
-  <div className="report-page flex flex-col overflow-hidden rounded-xl border shadow-sm sm:aspect-[210/297]" style={{ background: R.paper, borderColor: R.line, breakAfter: n < TOTAL ? "page" : "auto" }}>
+  <div className="report-page flex flex-col rounded-xl border shadow-sm sm:min-h-[1123px]" style={{ background: R.paper, borderColor: R.line, breakAfter: n < TOTAL ? "page" : "auto" }}>
     <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3 sm:px-6" style={{ borderColor: R.line }}>
       <div className="flex items-center gap-3"><img src={LOGO} alt="ACTES" className="h-14 w-auto object-contain" /><span dir="ltr" className="hidden text-[11px] font-black tracking-wide sm:inline" style={{ color: "#4b5563" }}>ENERGY SYSTEMS & SOLUTIONS</span></div>
       <span className="rounded-md border bg-white px-3 py-1.5 text-[11px]" style={{ borderColor: R.line, color: "#4b5563" }}><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: R.green }} />دراسة جدوى تنفيذية</span>
@@ -180,7 +180,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
         return n.outerHTML;
       }).join("");
       const css = `@page{size:A4;margin:8mm}html,body{background:#fff !important;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-        body{width:194mm}.report-page{width:194mm !important;max-width:none !important;margin:0 !important;box-shadow:none !important;break-after:page;page-break-after:always;break-inside:avoid}
+        body{width:194mm}.report-page{width:194mm !important;max-width:none !important;margin:0 !important;box-shadow:none !important;break-after:page;page-break-after:always;min-height:0 !important}
         .report-page:last-child{break-after:auto;page-break-after:auto}[dir=rtl],[dir=rtl] *{font-family:Tajawal,'IBM Plex Sans Arabic',sans-serif}`;
       const html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><base href="${location.origin}/"><title>${title.replace(/</g, "")}</title>${heads}<style>${css}</style></head><body dir="rtl">${node.outerHTML}</body></html>`;
       const frame = document.createElement("iframe");
