@@ -26,7 +26,7 @@ export async function parseLoadPdf(data: ArrayBuffer, pdfjs: any): Promise<LoadP
     // تجميع الصفوف حسب الإحداثي الرأسي
     const rows: Item[][] = [];
     for (const it of items.sort((a, b) => b.y - a.y)) {
-      const r = rows.find((row) => Math.abs(row[0].y - it.y) < 3);
+      const r = rows.find((row) => Math.abs(row[0]!.y - it.y) < 3);
       if (r) r.push(it); else rows.push([it]);
     }
     // نص كل صف: الأرقام من اليسار لليمين، والعربي من اليمين لليسار (المقاطع مجزأة في ملفات PDF)
