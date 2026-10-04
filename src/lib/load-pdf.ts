@@ -38,13 +38,13 @@ export async function parseLoadPdf(data: ArrayBuffer, pdfjs: any): Promise<LoadP
     for (const row of rows) {
       const t = row.map((i) => i.str.match(TIME)).find(Boolean);
       if (!t) continue;
-      let h = Number(t[1]) % 12; if (/pm/i.test(t[2])) h += 12;
+      let h = Number(t[1]) % 12; if (/pm/i.test(t[2] ?? "")) h += 12;
       const nums = row.filter((i) => NUM.test(i.str)).sort((a, b) => a.x - b.x);
       if (!nums.length) continue;
-      hourly.push([h, Number(nums[0].str)]);
+      hourly.push([h, Number(nums[0]!.str)]);
     }
     if (hourly.length < 12) continue;
-    const date = dm ? `${dm[1].padStart(2, "0")}/${dm[2].padStart(2, "0")}/${dm[3]}` : `يوم ${days.length + 1}`;
+    const date = dm ? `${(dm[1] ?? "").padStart(2, "0")}/${(dm[2] ?? "").padStart(2, "0")}/${dm[3]}` : `يوم ${days.length + 1}`;
     if (!current || date !== lastDate) { current = { date, hours: Array(24).fill(0) }; days.push(current); lastDate = date; }
     for (const [h, v] of hourly) current.hours[h] = v;
   }
@@ -54,7 +54,7 @@ export async function parseLoadPdf(data: ArrayBuffer, pdfjs: any): Promise<LoadP
 /** متوسط الساعات عبر الأيام المختارة؛ يمكن تجاهل الساعات الصفرية (توقف جهاز القياس). */
 export function averageDays(days: LoadDay[], skipZero: boolean): number[] {
   return Array.from({ length: 24 }, (_, h) => {
-    const vals = days.map((d) => d.hours[h]).filter((v) => !skipZero || v > 0);
+    const vals = days.map((d) => d.hours[h] ?? 0).filter((v) => !skipZero || v > 0);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   });
 }
