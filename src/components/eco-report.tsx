@@ -107,13 +107,20 @@ const Sec = ({ n, kicker, title, note, children }: { n: string; kicker: string; 
   </section>
 );
 
+const TOTAL = 4;
+const DOC_NO = `ACT-FS-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}${String(new Date().getDate()).padStart(2, "0")}`;
 const Page = ({ n, children }: { n: number; children: React.ReactNode }) => (
-  <div className="report-page overflow-hidden rounded-xl border shadow-sm" style={{ background: R.paper, borderColor: R.line, breakAfter: n < 5 ? "page" : "auto" }}>
+  <div className="report-page flex flex-col overflow-hidden rounded-xl border shadow-sm sm:aspect-[210/297]" style={{ background: R.paper, borderColor: R.line, breakAfter: n < TOTAL ? "page" : "auto" }}>
     <div className="flex items-center justify-between gap-3 border-b bg-white px-4 py-3 sm:px-6" style={{ borderColor: R.line }}>
       <div className="flex items-center gap-3"><img src={LOGO} alt="ACTES" className="h-14 w-auto object-contain" /><span dir="ltr" className="hidden text-[11px] font-black tracking-wide sm:inline" style={{ color: "#4b5563" }}>ENERGY SYSTEMS & SOLUTIONS</span></div>
-      <span className="rounded-md border bg-white px-3 py-1.5 text-[11px]" style={{ borderColor: R.line, color: "#4b5563" }}><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: R.green }} />دراسة جدوى تنفيذية • صفحة {n} من 5</span>
+      <span className="rounded-md border bg-white px-3 py-1.5 text-[11px]" style={{ borderColor: R.line, color: "#4b5563" }}><i className="me-1.5 inline-block size-2 rounded-full" style={{ background: R.green }} />دراسة جدوى تنفيذية</span>
     </div>
-    <div className="space-y-5 p-4 sm:p-5">{children}</div>
+    <div className="flex flex-1 flex-col justify-between gap-5 p-4 sm:p-5">{children}</div>
+    <div className="flex items-center justify-between gap-3 border-t bg-white px-4 py-2 text-[10px] sm:px-6" style={{ borderColor: R.line, color: R.sub }}>
+      <span dir="ltr" className="tabular-nums">{DOC_NO}</span>
+      <span>وثيقة سرية — للاستخدام الخاص بالعميل • {new Date().toLocaleDateString("ar-EG-u-nu-latn")}</span>
+      <b className="tabular-nums" style={{ color: R.ink }}>صفحة {n} من {TOTAL}</b>
+    </div>
   </div>
 );
 
@@ -148,11 +155,10 @@ const Legend = ({ items }: { items: [string, string][] }) => (
 export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, project, target, scenarioLabel, autoDownload, onDownloaded, hideActions }: { kw: number[]; price: number; system?: CustomSystem | undefined; onBuy?: (() => void) | undefined; onEdit?: (() => void) | undefined; onSales?: (() => void) | undefined; project?: string | undefined; target?: number | undefined; scenarioLabel?: string | undefined; autoDownload?: boolean | undefined; onDownloaded?: (() => void) | undefined; hideActions?: boolean | undefined }) {
   const d = useMemo(() => design(kw, system, target), [kw, system, target]);
   const e = econ(d.total, d.genE, d.capex, price0);
-  const [price, setPrice] = useState(price0);
-  const [load, setLoad] = useState(Math.round(d.total));
-  const scale = d.total > 0 ? load / d.total : 1;
-  const sc = { saving: e.savedL * 365 * price * scale };
-  const scMonths = sc.saving > 0 ? (d.capex / sc.saving) * 12 : null;
+  const cleanKwhY = d.total * (d.clean / 100) * 365;
+  const lcoe = cleanKwhY > 0 ? d.capex / (cleanKwhY * 20) : 0;
+  const roi = d.capex > 0 ? (e.saving / d.capex) * 100 : 0;
+  const sens = [0.7, 0.85, 1, 1.15, 1.3].map((f) => { const pr = price0 * f; const sv = e.savedL * 365 * pr; return { pr, sv, m: sv > 0 ? (d.capex / sv) * 12 : null, n5: sv * 5 - d.capex, cur: f === 1 }; });
   const sched = schedule(d.hours);
   const ref = useRef<HTMLDivElement>(null);
   const offH = 24 - d.genHours;
@@ -222,29 +228,17 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             <Kpi t="فترة الاسترداد" v={fmtM(e.months)} s={e.months ? `≈ ${nf(e.months / 12, 2)} سنة` : undefined} />
             <Kpi t="صافي التوفير خلال 5 سنوات" v={`${nf(e.net5)} $`} s="توفير تراكمي" />
             <Kpi t="خفض انبعاثات الكربون" v={`${nf(e.co2)} طن CO₂/سنة`} s="أثر بيئي مباشر" />
+            <Kpi t="العائد السنوي على الاستثمار" v={`${nf(roi, 1)} %`} s="ROI سنوي" />
+            <Kpi t="تكلفة الكيلوواط النظيف" v={`${nf(lcoe, 3)} $/kWh`} s="LCOE على 20 سنة" />
+            <Kpi t="ما يعادل زراعة" v={`${nf(e.co2 * 45)} شجرة`} s="مكافئ بيئي سنوي" />
+            <Kpi t="صافي القيمة خلال 20 سنة" v={`${nf(e.saving * 20 - d.capex)} $`} s="بدون احتساب التضخم" />
+            <Kpi t="الطاقة النظيفة السنوية" v={`${nf(cleanKwhY / 1000, 1)} MWh`} s="من الشمس والبطاريات" />
           </div>
         </Sec>
         </Page>
         <Page n={2}>
 
-        <Sec n="02" kicker="حاسبة السيناريوهات" title="اختبر جدوى الاستثمار لحظياً" note="عدّل سعر الديزل أو حجم الحمل لمشاهدة أثر السيناريو مباشرة على النتائج المالية.">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-4">
-              <label className="block text-xs font-bold">سعر لتر الديزل <b className="float-left tabular-nums text-navy">${nf(price, 3)} / L</b>
-                <input type="range" min={0.5} max={2} step={0.01} value={price} onChange={(x) => setPrice(Number(x.target.value))} className="mt-2 w-full accent-primary" /></label>
-              <label className="block text-xs font-bold">الحمل اليومي للمنشأة <b className="float-left tabular-nums text-navy">{nf(load)} kWh</b>
-                <input type="range" min={Math.max(1, Math.round(d.total * 0.5))} max={Math.max(2, Math.round(d.total * 1.5))} value={load} onChange={(x) => setLoad(Number(x.target.value))} className="mt-2 w-full accent-primary" /></label>
-              <p className="text-[11px] text-muted-foreground">الحساب يفترض ثبات نسبة التوفير في الوقود وتناسبها مع الحمل اليومي.</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2 rounded-lg bg-foreground p-4 text-background">
-              <div><p className="text-[11px] opacity-70">التوفير السنوي</p><p className="text-2xl font-black tabular-nums">${nf(sc.saving)}</p></div>
-              <div><p className="text-[11px] opacity-70">فترة الاسترداد</p><p className="text-xl font-black tabular-nums">{fmtM(scMonths)}</p></div>
-              <div><p className="text-[11px] opacity-70">صافي التوفير خلال 5 سنوات</p><p className="text-xl font-black tabular-nums">${nf(sc.saving * 5 - d.capex)}</p></div>
-            </div>
-          </div>
-        </Sec>
-
-        <Sec n="03" kicker="المقارنة" title="الوضع بدون منظومة مقابل المنظومة المقترحة" note="مقارنة تفصيلية بين التشغيل على المولدات فقط والمنظومة الهجينة المقترحة.">
+        <Sec n="02" kicker="المقارنة" title="الوضع بدون منظومة مقابل المنظومة المقترحة" note="مقارنة تفصيلية بين التشغيل على المولدات فقط والمنظومة الهجينة المقترحة.">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-xs">
               <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">بند المقارنة</th><th className="p-2 text-right">بدون منظومة</th><th className="p-2 text-right">المنظومة المقترحة (Solar + BESS)</th></tr></thead>
@@ -269,6 +263,15 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
               </tbody>
             </table>
           </div>
+        </Sec>
+
+        <Sec n="03" kicker="تحليل الحساسية" title="أثر تغيّر سعر الديزل على الجدوى" note="مصفوفة السيناريوهات عند أسعار ديزل مختلفة بنفس المنظومة والحمل.">
+          <table className="w-full text-xs">
+            <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">سعر اللتر</th><th className="p-2 text-right">التوفير السنوي</th><th className="p-2 text-right">فترة الاسترداد</th><th className="p-2 text-right">صافي 5 سنوات</th></tr></thead>
+            <tbody>{sens.map((r) => (
+              <tr key={r.pr} className="border-b border-border" style={r.cur ? { background: R.mint, fontWeight: 900 } : undefined}><td className="p-2 tabular-nums">${nf(r.pr, 3)}{r.cur ? " (الحالي)" : ""}</td><td className="p-2 tabular-nums">${nf(r.sv)}</td><td className="p-2">{fmtM(r.m)}</td><td className="p-2 tabular-nums">${nf(r.n5)}</td></tr>
+            ))}</tbody>
+          </table>
         </Sec>
         </Page>
         <Page n={3}>
@@ -307,20 +310,12 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             </div>
           </div>
         </Sec>
-        </Page>
-        <Page n={4}>
-        <Sec n="06" kicker="تغطية الأحمال" title="تغطية الحمل على مدار 24 ساعة" note={`طاقة نظيفة ${nf(d.clean)}% • المولد ${d.genHours} ساعة/يوم`}>
-          <Frame max={kMax} unit="">
-            <path d={area(a3, a2)} fill={C.gen} opacity={0.75} />
-            <path d={area(a2, a1)} fill={C.bat} opacity={0.8} />
-            <path d={area(a1, zero)} fill={C.sun} opacity={0.85} />
-            <path d={step(d.hours.map((x) => x.load))} fill="none" stroke={C.load} strokeWidth={1.8} />
-          </Frame>
-          <Legend items={[[C.sun, "شمس مباشرة"], ...(noBat ? [] : [[C.bat, "البطاريات"] as [string, string]]), [C.gen, "المولد"], [C.load, "الحمل (kW)"]]} />
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+
+        <Sec n="06" kicker="الوقود والمولد" title="أثر المنظومة على الديزل وساعات المولد">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <p className="text-xs font-black">استهلاك الديزل اليومي (لتر)</p>
-              <div className="mt-2 flex h-40 items-end gap-6 border-b border-border px-6">
+              <div className="mt-2 flex h-36 items-end gap-6 border-b border-border px-6">
                 {[["بدون منظومة", e.baseL, C.gen], ["المنظومة المقترحة", e.newL, C.bat]].map(([l, v, c]) => (
                   <div key={l as string} className="flex flex-1 flex-col items-center gap-1"><b className="text-xs tabular-nums">{nf(v as number)}</b><div className="w-full rounded-t" style={{ height: `${Math.max(2, ((v as number) / Math.max(e.baseL, 1)) * 120)}px`, background: c as string }} /><span className="text-[10px]">{l as string}</span></div>
                 ))}
@@ -328,7 +323,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             </div>
             <div>
               <p className="text-xs font-black">ساعات المولد ونسبة الطاقة النظيفة</p>
-              <div className="mt-2 flex h-40 items-end gap-3 border-b border-border px-4">
+              <div className="mt-2 flex h-36 items-end gap-3 border-b border-border px-4">
                 {[["ساعات المولد — بدون", (d.baseHours / 24) * 100, `${d.baseHours}h`, C.gen], ["ساعات المولد — مقترحة", (d.genHours / 24) * 100, `${d.genHours}h`, C.gen], ["طاقة نظيفة %", d.clean, `${nf(d.clean)}%`, C.bat]].map(([l, v, t, c]) => (
                   <div key={l as string} className="flex flex-1 flex-col items-center gap-1"><b className="text-xs">{t as string}</b><div className="w-full rounded-t" style={{ height: `${Math.max(2, ((v as number) / 100) * 120)}px`, background: c as string }} /><span className="text-center text-[10px]">{l as string}</span></div>
                 ))}
@@ -337,8 +332,18 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           </div>
         </Sec>
         </Page>
-        <Page n={5}>
-        {!noBat && <Sec n="07" kicker="أداء البطاريات" title="حالة شحن البطاريات" note="منحنى شحن وتفريغ البطاريات خلال 24 ساعة.">
+        <Page n={4}>
+        <Sec n="07" kicker="تغطية الأحمال" title="تغطية الحمل على مدار 24 ساعة" note={`طاقة نظيفة ${nf(d.clean)}% • المولد ${d.genHours} ساعة/يوم`}>
+          <Frame max={kMax} unit="">
+            <path d={area(a3, a2)} fill={C.gen} opacity={0.75} />
+            <path d={area(a2, a1)} fill={C.bat} opacity={0.8} />
+            <path d={area(a1, zero)} fill={C.sun} opacity={0.85} />
+            <path d={step(d.hours.map((x) => x.load))} fill="none" stroke={C.load} strokeWidth={1.8} />
+          </Frame>
+          <Legend items={[[C.sun, "شمس مباشرة"], ...(noBat ? [] : [[C.bat, "البطاريات"] as [string, string]]), [C.gen, "المولد"], [C.load, "الحمل (kW)"]]} />
+        </Sec>
+        <div className={noBat ? "" : "grid gap-5 lg:grid-cols-2"}>
+        {!noBat && <Sec n="08" kicker="أداء البطاريات" title="حالة شحن البطاريات" note="منحنى شحن وتفريغ البطاريات خلال 24 ساعة.">
           <div>
             <div>
               <p className="text-xs font-black">حالة شحن البطاريات — 24 ساعة</p>
@@ -354,7 +359,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             </div>
           </div>
         </Sec>}
-        <Sec n={noBat ? "07" : "08"} kicker="الإنتاج الشمسي" title="الإنتاج الشمسي مقابل الحمل">
+        <Sec n={noBat ? "08" : "09"} kicker="الإنتاج الشمسي" title="الإنتاج الشمسي مقابل الحمل">
           <div>
               <p className="text-[11px] text-muted-foreground">المساحة الخضراء تمثل الفائض الشمسي المستخدم في شحن البطاريات • ذروة الإنتاج {nf(Math.max(...d.hours.map((x) => x.pv)))} / ذروة الحمل {nf(d.peak)} kW</p>
               <Frame max={kMax} unit="">
@@ -365,6 +370,12 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
               <Legend items={[[C.sun, "الإنتاج الشمسي"], [C.load, "حمل المنشأة"], [C.bat, "فائض للشحن"]]} />
           </div>
         </Sec>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_1fr]">
+          {[["إعداد المهندس المختص", "الاسم / التوقيع"], ["اعتماد ACTES", "الختم الرسمي"], ["موافقة العميل", "الاسم / التوقيع / التاريخ"]].map(([t, s2]) => (
+            <div key={t} className="rounded-lg border bg-white p-3" style={{ borderColor: R.line }}><p className="text-[12px] font-black">{t}</p><div className="mt-10 border-t border-dashed pt-1 text-[10px]" style={{ borderColor: R.sub, color: R.sub }}>{s2}</div></div>
+          ))}
+        </div>
         <p className="text-center text-[11px]" style={{ color: R.sub }}>الأرقام تقديرية: {PSH} ساعات ذروة شمسية، {KWH_PER_L} kWh لكل لتر ديزل.</p>
         <footer className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-5 py-4" style={{ background: R.ink }}>
           <div className="flex items-center gap-3"><span className="rounded bg-white px-2 py-1"><img src={LOGO} alt="ACTES" className="h-12 w-auto" /></span><b dir="ltr" className="text-sm" style={{ color: "#fff" }}>ACTES Energy Systems & Solutions</b></div>
