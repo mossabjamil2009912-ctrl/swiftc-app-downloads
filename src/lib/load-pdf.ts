@@ -23,15 +23,17 @@ export async function parseLoadPdf(data: ArrayBuffer, pdfjs: any): Promise<LoadP
       .filter((i: { str?: string }) => typeof i.str === "string")
       .map((i: { str: string; transform: number[] }) => ({ str: clean(i.str), x: i.transform[4], y: i.transform[5] }))
       .filter((i: Item) => i.str);
-    const all = items.map((i) => i.str).join(" ");
-    const dm = all.match(DATE);
-    if (!client) { const cm = all.match(/اسم العميل\s*:?\s*([^\d:]+?)(?:\s{2,}|$|الوقت|القدرة)/); if (cm) client = cm[1].trim(); }
     // تجميع الصفوف حسب الإحداثي الرأسي
     const rows: Item[][] = [];
     for (const it of items.sort((a, b) => b.y - a.y)) {
       const r = rows.find((row) => Math.abs(row[0].y - it.y) < 3);
       if (r) r.push(it); else rows.push([it]);
     }
+    // نص كل صف: الأرقام من اليسار لليمين، والعربي من اليمين لليسار (المقاطع مجزأة في ملفات PDF)
+    const ltr = rows.map((r) => [...r].sort((a, b) => a.x - b.x).map((i) => i.str).join(""));
+    const rtl = rows.map((r) => [...r].sort((a, b) => b.x - a.x).map((i) => i.str).join(""));
+    const dm = ltr.map((t) => t.match(DATE)).find(Boolean);
+    if (!client) { const c = rtl.find((t) => t.includes("العميل")); if (c) client = c.split(/العميل\s*:?/)[1]?.trim().replace("للبالستيك", "للبلاستيك") ?? ""; }
     const hourly: [number, number][] = [];
     for (const row of rows) {
       const t = row.map((i) => i.str.match(TIME)).find(Boolean);
