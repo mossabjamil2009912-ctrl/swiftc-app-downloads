@@ -482,3 +482,10 @@ export function ecoSummary(kw: number[], price: number, target: number) {
   const e = econ(d.total, d.genE, d.capex, price);
   return { kwp: d.kwp, panelLabel: d.panelLabel, batKwh: d.batKwh, batLabel: d.batLabel, inv: `${d.invN} × ${d.invBrand} ${d.unit} kW`, invKw: d.unit * d.invN, capex: d.capex, saving: e.saving, months: e.months, cut: e.cut, savedL: e.savedL * 365, offH: 24 - d.genHours, peak: d.peak, total: d.total };
 }
+
+/** نفس محاكاة التقرير لمنظومة جاهزة — حتى تطابق شاشة النتائج التقرير حرفياً. */
+export function ecoSystemSummary(kw: number[], price: number, sys: CustomSystem) {
+  const d = design(kw, sys);
+  const e = econ(d.total, d.genE, d.capex, price);
+  return { total: d.total, clean: d.clean, savedL: e.savedL * 365, saving: e.saving, months: e.months, net5: e.net5, cut: e.cut };
+}

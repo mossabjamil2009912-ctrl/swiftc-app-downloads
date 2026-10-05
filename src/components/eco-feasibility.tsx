@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ShoppingCart, X, FileText, Download } from "lucide-react";
-import { EcoReport, ecoSummary, type CustomSystem } from "./eco-report";
+import { EcoReport, ecoSummary, ecoSystemSummary, type CustomSystem } from "./eco-report";
 import { speakScreen } from "@/lib/voice-guide";
 import { LoadPdfImport } from "./load-pdf-import";
 
@@ -23,8 +23,6 @@ const BAT_USD_KWH = 300; // بطاريات ليثيوم لكل kWh
 const INV_USD_KW = 150; // انفرتر هجين لكل kW
 const DOD = 0.9;
 const YEARS = 25;
-const DEG = 0.005;
-const OM = 0.01;
 const DAY = (h: number) => h >= 7 && h < 17;
 
 const hourLabel = (h: number) => {
@@ -232,7 +230,7 @@ export function EcoFeasibility({ mode, onSales, onBuy }: { mode: Mode; onSales?:
                   ["الديزل الموفّر", `${nf(x.savedL)} لتر/سنة`],
                   ["التوفير السنوي", `${nf(x.saving)} $`],
                   ["التكلفة التقديرية", `${nf(x.capex)} $`],
-                  ["فترة الاسترداد", x.months === null ? "—" : x.months < 24 ? `${nf(x.months, 1)} شهر` : `${nf(x.months / 12, 1)} سنة`],
+                  ["فترة الاسترداد", x.months === null ? "—" : `${nf(Math.round(x.months * 10) / 10, 1)} شهراً`],
                 ].map(([k, v], j) => (
                   <div key={j} className="flex justify-between gap-2 border-b border-border/60 pb-1"><dt className="text-muted-foreground">{k}</dt><dd className="text-end font-bold tabular-nums">{v}</dd></div>
                 ))}
@@ -294,28 +292,17 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const loadKw = hrs.map((v) => n(v) * (lm === "diesel" ? KWH_PER_L : 1));
   const loadDay = loadKw.reduce((a, b) => a + b, 0);
   const useLoads = lm !== "none" && loadDay > 0;
-  let covered = dailyKwh;
-  if (useLoads) {
-    const sun = Array.from({ length: 24 }, (_, h) => (h >= 6 && h < 18 ? Math.sin(((h - 6 + 0.5) / 12) * Math.PI) : 0));
-    const ss = sun.reduce((a, b) => a + b, 0);
-    let direct = 0, excess = 0;
-    sun.forEach((s, h) => { const p = (dailyKwh * s) / ss; direct += Math.min(p, (loadKw[h] ?? 0)); excess += Math.max(0, p - (loadKw[h] ?? 0)); });
-    const night = loadDay - direct;
-    covered = direct + Math.min(excess * 0.9, batKwh * DOD, night);
-  }
-  const coverage = useLoads ? Math.round((covered / loadDay) * 100) : null;
-  const liters = Math.round((covered * 365) / KWH_PER_L);
-  const saving = Math.round(liters * dp * 1.1);
-  let cum = -capex; let payback: number | null = null;
-  const rows: { y: number; cum: number }[] = [];
-  for (let y = 1; y <= YEARS; y++) {
-    const net = saving * Math.pow(1 - DEG, y - 1) - capex * OM;
-    const prev = cum; cum += net; rows.push({ y, cum: Math.round(cum) });
-    if (payback === null && prev < 0 && cum >= 0 && net > 0) payback = y - 1 + Math.abs(prev) / net;
-  }
   // الأحمال للتقرير: أحمال العميل إن وُجدت، وإلا حمل افتراضي يساوي إنتاج المنظومة اليومي
   const reportKw = useLoads ? loadKw : spread(Math.max(1, dailyKwh)).map(Number);
   const sys: CustomSystem = { panelName: f.panel, panelW: n(f.panelW), panels: n(f.panelN), invName: f.inv, invKw: n(f.invKw), invN: n(f.invN), batName: f.bat, batUnit: n(f.batKwh), batN: n(f.batN), capex };
+  // نفس محاكاة التقرير: بدون فواقد، المولد لا يشحن البطارية، بدون خصومات صيانة أو تدهور
+  const sm = ecoSystemSummary(reportKw, dp, sys);
+  const coverage = useLoads ? Math.round(sm.clean * 10) / 10 : null;
+  const liters = Math.round(sm.savedL);
+  const saving = Math.round(sm.saving);
+  const payback = sm.months;
+  const rows = Array.from({ length: YEARS }, (_, i) => ({ y: i + 1, cum: Math.round(saving * (i + 1) - capex) }));
+  const cum = saving * YEARS - capex;
   const roi = capex > 0 ? Math.round((cum / capex) * 100) : 0;
   const QUICK: Partial<Record<keyof typeof f, [string, string]>> = {
     panel: ["Suntech 720W", "Suntech 595W"], panelW: ["720", "595"],
@@ -412,7 +399,8 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
             ...(useLoads ? [["الحمل اليومي", `${nf(loadDay, 1)} kWh`], ["نسبة تغطية الحمل", `${coverage}%`]] : []),
             ["الديزل الموفّر سنوياً", `${nf(liters)} لتر`],
             ["التوفير السنوي", `${nf(saving)} $`],
-            ["فترة الاسترداد", payback ? `${Math.round(payback * 10) / 10} سنة` : "—"],
+            ["فترة الاسترداد", payback ? `${nf(Math.round(payback * 10) / 10, 1)} شهراً` : "—"],
+            ["صافي الوفر التراكمي (5 سنوات)", `${nf(Math.round(sm.net5))} $`],
             [`صافي الربح خلال ${YEARS} سنة`, `${nf(cum)} $`],
             ["العائد على الاستثمار", `${roi}%`],
             ["تكلفة الواط", kwp > 0 ? `${nf(capex / (kwp * 1000), 2)} $/W` : "—"],
@@ -426,7 +414,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
           ))}
         </div>
       </div>
-      <p className="text-[11px] text-muted-foreground">الأرقام تقديرية: {PSH} ساعات ذروة شمسية، نسبة أداء {PR * 100}%، {KWH_PER_L} kWh لكل لتر ديزل، وتدهور سنوي {DEG * 100}%.</p>
+      <p className="text-[11px] text-muted-foreground">الأرقام تقديرية: {PSH} ساعات ذروة شمسية، بدون فواقد أداء، {KWH_PER_L} kWh لكل لتر ديزل، بدون خصومات صيانة أو تدهور.</p>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setShowReport(true)} className="inline-flex items-center gap-2 rounded-md bg-navy px-5 py-2.5 text-xs font-black text-primary-foreground"><FileText className="size-4" /> فتح تقرير الدراسة الاقتصادية</button>
         <button type="button" onClick={() => setDone(false)} className="rounded-md border border-border px-4 py-2 text-xs font-bold">تعديل البيانات</button>
@@ -441,7 +429,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
               <button type="button" onClick={() => setShowReport(false)} aria-label="إغلاق" className="grid size-7 place-items-center rounded-full bg-muted text-navy transition hover:bg-border"><X className="size-4" /></button>
             </div>
             <div className="flex-1 overflow-auto bg-muted p-2 sm:p-4">
-              <EcoReport kw={reportKw} price={dp} project={project} system={sys} results={{ dailyKwh, yearKwh, loadDay: useLoads ? loadDay : null, coverage, liters, saving, payback, cum, roi, wattCost: kwp > 0 ? `${nf(capex / (kwp * 1000), 2)} $/W` : "—", years: YEARS, rows }} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
+              <EcoReport kw={reportKw} price={dp} project={project} system={sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
             </div>
           </div>
         </div>,
