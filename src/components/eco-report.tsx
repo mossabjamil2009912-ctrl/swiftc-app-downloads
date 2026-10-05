@@ -234,7 +234,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             <div className="rounded-xl border bg-white p-5 shadow-md lg:order-first" style={{ borderColor: R.line, borderTop: `5px solid ${R.red}` }}>
               <p className="text-[13px] font-semibold" style={{ color: "#1f2937" }}>ملخص الاستثمار</p>
               {[["الاستثمار المطلوب", d.capex], ["التوفير في 5 سنوات", e.sav5], ["صافي الوفر التراكمي", e.net5]].map(([l, v]) => (
-                <div key={l as string} className="flex items-center justify-between border-b py-3.5" style={{ borderColor: R.line }}><span className="text-sm" style={{ color: "#4b5563" }}>{l}</span><b className="text-xl tabular-nums">${nf(v as number)}</b></div>
+                <div key={l as string} className="flex items-center justify-between border-b py-3.5" style={{ borderColor: R.line }}><span className="text-sm font-bold" style={{ color: "#000000" }}>{l}</span><b className="text-xl tabular-nums" style={{ color: "#000000" }}>${nf(v as number)}</b></div>
               ))}
               <p className="mt-4 rounded-md py-3 text-center text-sm font-black" style={{ background: R.mint, color: R.green }}>خفض فاتورة الديزل الحالية بنسبة {nf(e.cut, 1)}%</p>
             </div>
