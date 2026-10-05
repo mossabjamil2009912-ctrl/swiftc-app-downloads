@@ -56,7 +56,6 @@ function design(kw: number[], sys?: CustomSystem, target?: number) {
         if (surplus > 0) { charge = Math.min(surplus, cap - soc); soc += charge; }
         if (inWin(h, n)) {
           gen = rest;
-          const top = Math.min(cap - soc, cap * 0.25); soc += top;
         } else if (rest > 0) {
           batOut = Math.min(rest, Math.max(0, soc - min)); soc -= batOut; rest -= batOut;
           if (rest > 0.001) { unmet += rest; gen = rest; }
