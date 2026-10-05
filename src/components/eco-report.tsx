@@ -242,22 +242,15 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           </div>
 
         <Sec n="01" kicker="لوحة المؤشرات" title="الأثر التنفيذي" note="المؤشرات الأساسية للمنظومة، محسوبة على أساس التشغيل السنوي الكامل.">
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Kpi hot t="إجمالي القدرة الشمسية" v={`${nf(d.kwp, 2)} kWp`} s={d.panelLabel} />
-            {!noBat && <Kpi t="سعة التخزين المركبة" v={`${nf(d.batKwh)} kWh`} s={d.batLabel} />}
-            <Kpi t="التغطية النظيفة" v={`${nf(d.clean)} %`} s={`من حمل يومي ${nf(d.total)} kWh`} />
-            <Kpi hot t="إيقاف المولد" v={`${offH} ساعة/يوم`} s={`${nf(offH * 365)} ساعة سنوياً`} />
-            <Kpi t="توفير الديزل" v={`${nf(e.savedL * 365)} لتر/سنة`} s={`≈ ${nf(e.savedL)} لتر/يوم`} />
-            <Kpi hot t="التوفير المالي السنوي" v={`${nf(e.saving)} $`} s={`عند ${nf(price0, 3)} $/L`} />
+            {noBat ? <Kpi t="توفير الديزل" v={`${nf(e.savedL * 365)} لتر/سنة`} s={`≈ ${nf(e.savedL)} لتر/يوم`} /> : <Kpi t="سعة التخزين المركبة" v={`${nf(d.batKwh)} kWh`} s={d.batLabel} />}
             <Kpi t="التكلفة الاستثمارية" v={`${nf(d.capex)} $`} s="CAPEX" />
-            <Kpi t="فترة الاسترداد" v={fmtM(e.months)} s={e.months ? `≈ ${nf(e.months / 12, 2)} سنة` : undefined} />
+            <Kpi hot t="التوفير المالي السنوي" v={`${nf(e.saving)} $`} s={`عند ${nf(price0, 3)} $/L`} />
+            <Kpi hot t="فترة الاسترداد" v={fmtM(e.months)} s={e.months ? `≈ ${nf(e.months / 12, 2)} سنة` : undefined} />
             <Kpi t="صافي التوفير خلال 5 سنوات" v={`${nf(e.net5)} $`} s="توفير تراكمي" />
-            <Kpi t="خفض انبعاثات الكربون" v={`${nf(e.co2)} طن CO₂/سنة`} s="أثر بيئي مباشر" />
-            <Kpi t="العائد السنوي على الاستثمار" v={`${nf(roi, 1)} %`} s="ROI سنوي" />
-            <Kpi t="تكلفة الكيلوواط النظيف" v={`${nf(lcoe, 3)} $/kWh`} s="LCOE على 20 سنة" />
-            <Kpi t="ما يعادل زراعة" v={`${nf(e.co2 * 45)} شجرة`} s="مكافئ بيئي سنوي" />
-            <Kpi t="صافي القيمة خلال 20 سنة" v={`${nf(e.saving * 20 - d.capex)} $`} s="بدون احتساب التضخم" />
-            <Kpi t="الطاقة النظيفة السنوية" v={`${nf(cleanKwhY / 1000, 1)} MWh`} s="من الشمس والبطاريات" />
+            <Kpi t="إيقاف المولد" v={`${offH} ساعة/يوم`} s={`${nf(offH * 365)} ساعة سنوياً`} />
+            <Kpi t="التغطية النظيفة" v={`${nf(d.clean)} %`} s={`من حمل يومي ${nf(d.total)} kWh`} />
           </div>
         </Sec>
         </Page>
@@ -322,6 +315,18 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
               ["الهياكل", "هياكل تثبيت", "حديد مجلفن أو ألمنيوم مقاوم للصدأ وبزاوية ميل مثالية"],
             ].map(([a, b, c], i) => <tr key={a} className={i % 2 ? "bg-muted/40" : ""}><td className="p-2 font-bold">{a}</td><td className="p-2 text-navy">{b}</td><td className="p-2 text-muted-foreground">{c}</td></tr>)}</tbody>
           </table>
+          {(() => {
+            const w = d.panels > 0 ? (d.kwp * 1000) / d.panels : 0;
+            const m2 = d.panels * (w / 232); // ≈ 23% كفاءة لوح أحادي البلورة
+            const kg = d.panels * (w / 19);
+            return (
+              <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
+                {[["مساحة الألواح الصافية", `${nf(m2)} م²`], ["مساحة السطح المطلوبة", `≈ ${nf(m2 * 1.5)} م²`], ["وزن الألواح", `≈ ${nf(kg / 1000, 1)} طن`], ["الحمل على السطح", `≈ ${nf((kg * 1.25) / (m2 || 1), 1)} كغ/م²`]].map(([a, b]) => (
+                  <div key={a} className="rounded-md border p-2" style={{ borderColor: R.line }}><p className="text-[10px] text-muted-foreground">{a}</p><b className="tabular-nums text-navy">{b}</b></div>
+                ))}
+              </div>
+            );
+          })()}
         </Sec>
         </Page>
         <Page n={3}>
@@ -365,25 +370,36 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           </div>
         </Sec>
 
-        <Sec n="06" kicker="الوقود والمولد" title="أثر المنظومة على الديزل وساعات المولد">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="text-xs font-black">استهلاك الديزل اليومي (لتر)</p>
-              <div className="mt-2 flex h-36 items-end gap-6 border-b border-border px-6">
-                {[["بدون منظومة", e.baseL, C.gen], ["المنظومة المقترحة", e.newL, C.bat]].map(([l, v, c]) => (
-                  <div key={l as string} className="flex flex-1 flex-col items-center gap-1"><b className="text-xs tabular-nums">{nf(v as number)}</b><div className="w-full rounded-t" style={{ height: `${Math.max(2, ((v as number) / Math.max(e.baseL, 1)) * 120)}px`, background: c as string }} /><span className="text-[10px]">{l as string}</span></div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-black">ساعات المولد ونسبة الطاقة النظيفة</p>
-              <div className="mt-2 flex h-36 items-end gap-3 border-b border-border px-4">
-                {[["ساعات المولد — بدون", (d.baseHours / 24) * 100, `${d.baseHours}h`, C.gen], ["ساعات المولد — مقترحة", (d.genHours / 24) * 100, `${d.genHours}h`, C.gen], ["طاقة نظيفة %", d.clean, `${nf(d.clean)}%`, C.bat]].map(([l, v, t, c]) => (
-                  <div key={l as string} className="flex flex-1 flex-col items-center gap-1"><b className="text-xs">{t as string}</b><div className="w-full rounded-t" style={{ height: `${Math.max(2, ((v as number) / 100) * 120)}px`, background: c as string }} /><span className="text-center text-[10px]">{l as string}</span></div>
-                ))}
-              </div>
-            </div>
-          </div>
+        <Sec n="06" kicker="التدفق النقدي" title="التدفق النقدي التراكمي ولحظة استرداد رأس المال" note={`نقطة التعادل بعد ${fmtM(e.months)} • تدهور الألواح 0.5% سنوياً وصيانة 1% من التكلفة`}>
+          {(() => {
+            const N = 10; const cf: number[] = [-d.capex];
+            for (let y = 1; y <= N; y++) cf.push(cf[y - 1]! + e1.saving * Math.pow(0.995, y - 1) - d.capex * 0.01);
+            const W = 720, Hc = 220, pl = 64, pr = 12, pt = 14, pb = 26;
+            const mx = Math.max(...cf, 1), mn = Math.min(...cf, 0);
+            const xs = (i: number) => pl + ((W - pl - pr) / (N + 1)) * (i + 0.5);
+            const ysc = (v: number) => pt + (Hc - pt - pb) * ((mx - v) / (mx - mn));
+            const bw = ((W - pl - pr) / (N + 1)) * 0.6;
+            const be = e.months !== null && e.months / 12 <= N ? e.months / 12 : null;
+            const ticks = [mn, mn / 2, 0, mx / 2, mx];
+            return (
+              <svg viewBox={`0 0 ${W} ${Hc}`} className="w-full" style={{ direction: "ltr" }}>
+                {ticks.map((t, i) => <g key={i}><line x1={pl} x2={W - pr} y1={ysc(t)} y2={ysc(t)} stroke="#e5e7eb" /><text x={pl - 6} y={ysc(t) + 3} fontSize="9" textAnchor="end" fill="#666">{`${nf(t / 1000)}k $`}</text></g>)}
+                <line x1={pl} x2={W - pr} y1={ysc(0)} y2={ysc(0)} stroke="#111" strokeWidth="1.2" />
+                {cf.map((v, i) => <g key={i}>
+                  <rect x={xs(i) - bw / 2} width={bw} y={Math.min(ysc(v), ysc(0))} height={Math.max(1, Math.abs(ysc(v) - ysc(0)))} fill={v >= 0 ? C.bat : R.red} rx="2" />
+                  <text x={xs(i)} y={Hc - 10} fontSize="9" textAnchor="middle" fill="#666">{i}</text>
+                </g>)}
+                <polyline fill="none" stroke="#111" strokeWidth="1.5" points={cf.map((v, i) => `${xs(i)},${ysc(v)}`).join(" ")} />
+                {be !== null && <g>
+                  <line x1={xs(be)} x2={xs(be)} y1={pt} y2={Hc - pb} stroke={R.green} strokeDasharray="4 3" strokeWidth="1.5" />
+                  <circle cx={xs(be)} cy={ysc(0)} r="4" fill={R.green} />
+                  <text x={xs(be) + 6} y={pt + 10} fontSize="10" fontWeight="700" fill={R.green}>{`Payback ${nf(e.months!, 1)} mo`}</text>
+                </g>}
+                <text x={(W + pl) / 2} y={Hc - 1} fontSize="9" textAnchor="middle" fill="#666">Year</text>
+              </svg>
+            );
+          })()}
+          <Legend items={[[R.red, "رأس مال غير مسترد"], [C.bat, "أرباح صافية بعد الاسترداد"], [R.green, "لحظة استرداد رأس المال"]]} />
         </Sec>
 
         <Sec n="06-ب" kicker="البيئة والمعايير" title="الأثر البيئي والمطابقة الهندسية">
