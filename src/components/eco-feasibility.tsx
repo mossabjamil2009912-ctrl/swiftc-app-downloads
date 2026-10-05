@@ -268,6 +268,7 @@ export function EcoFeasibility({ mode, onSales, onBuy }: { mode: Mode; onSales?:
 export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const [f, setF] = useState({ panel: "", panelW: "", panelN: "", inv: "", invKw: "", invN: "", bat: "", batKwh: "", batN: "", cost: "", price: "1.1" });
   const [batType, setBatType] = useState<"bat" | "cab">("bat");
+  const [manual, setManual] = useState<Set<string>>(() => new Set());
   const [done, setDone] = useState(false);
   const [project, setProject] = useState("");
   const [named, setNamed] = useState(false);
@@ -307,12 +308,22 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const roi = capex > 0 ? Math.round((cum / capex) * 100) : 0;
   const cab = batType === "cab";
   const cabKwh = f.bat === "HiTHIUM" ? ["112"] : f.bat === "Pylontech" ? ["260", "313"] : [];
+  const fixedInv = cab && f.batKwh === "260";
   const QUICK: Partial<Record<keyof typeof f, string[]>> = {
     panel: ["Suntech 720W", "Suntech 595W"], panelW: ["720", "595"],
     inv: ["Deye", "Solis"], invKw: ["12", "50", "125"],
     bat: ["Pylontech", "HiTHIUM"], batKwh: cab ? cabKwh : ["5.12", "16"],
   };
-  const field = (k: keyof typeof f, label: string, ph: string, num = false, opt = false) => (
+  const pickQuick = (k: keyof typeof f, q: string) => {
+    setManual((m) => { const s = new Set(m); s.delete(k); return s; });
+    if (k === "bat" && cab) return setF({ ...f, bat: q, batKwh: q === "HiTHIUM" ? "112" : "" });
+    if (k === "batKwh" && cab && q === "260") return setF({ ...f, batKwh: q, inv: "Solis", invKw: "125" });
+    setF({ ...f, [k]: q });
+  };
+  const field = (k: keyof typeof f, label: string, ph: string, num = false, opt = false) => {
+    const qs = QUICK[k] ?? [];
+    const showInput = qs.length === 0 || manual.has(k);
+    return (
     <label className="grid gap-1">
       <span className="text-xs font-bold">{label}{opt && <span className="text-muted-foreground"> (اختياري)</span>}</span>
       {k === "bat" && (
@@ -322,16 +333,18 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
           ))}
         </span>
       )}
-      {QUICK[k] && QUICK[k]!.length > 0 && (
-        <span className={`grid gap-1.5 ${QUICK[k]!.length === 3 ? "grid-cols-3" : QUICK[k]!.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-          {QUICK[k]!.map((q) => (
-            <button key={q} type="button" onClick={() => setF(k === "bat" && cab ? { ...f, bat: q, batKwh: q === "HiTHIUM" ? "112" : "" } : { ...f, [k]: q })} className={`rounded-md border px-2 py-1.5 text-xs font-bold transition ${f[k] === q ? "border-brand bg-brand text-brand-foreground" : "border-border bg-card hover:border-brand/50"}`}>{q}</button>
+      {qs.length > 0 && (
+        <span className="flex flex-wrap gap-1.5">
+          {qs.map((q) => (
+            <button key={q} type="button" onClick={() => pickQuick(k, q)} className={`flex-1 rounded-md border px-2 py-1.5 text-xs font-bold transition ${!manual.has(k) && f[k] === q ? "border-brand bg-brand text-brand-foreground" : "border-border bg-card hover:border-brand/50"}`}>{q}</button>
           ))}
+          <button type="button" onClick={() => { setManual((m) => new Set(m).add(k)); setF({ ...f, [k]: "" }); }} className={`rounded-md border px-2 py-1.5 text-xs font-bold transition ${manual.has(k) ? "border-brand bg-brand text-brand-foreground" : "border-border bg-card"}`}>أخرى</button>
         </span>
       )}
-      <input inputMode={num ? "decimal" : "text"} value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+      {showInput && <input inputMode={num ? "decimal" : "text"} value={f[k]} placeholder={ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />}
     </label>
-  );
+    );
+  };
 
   if (!named) {
     return <ProjectNameForm value={project} onChange={setProject} onSubmit={(v) => { setProject(v); try { sessionStorage.setItem(PROJECT_KEY, v); } catch { /* ignore */ } setNamed(true); }} />;
@@ -346,12 +359,13 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
           {field("panel", "اسم اللوح", "Suntech")}
           {field("panelW", "قدرة اللوح (W)", "720", true)}
           {field("panelN", "عدد الألواح", "20", true)}
-          {field("inv", "اسم الانفرتر", "Deye")}
-          {field("invKw", "قدرة الانفرتر (kW)", "12", true)}
-          {field("invN", "عدد الانفرترات", "1", true)}
           {field("bat", cab ? "اسم الكابينة" : "اسم البطارية", "Pylontech", false, true)}
           {field("batKwh", cab ? "سعة الكابينة (kWh)" : "سعة البطارية (kWh)", cab ? "260" : "5", true, true)}
           {field("batN", cab ? "عدد الكبائن" : "عدد البطاريات", cab ? "3" : "2", true, true)}
+          {fixedInv
+            ? <div className="grid gap-1 text-xs"><span className="font-bold">الانفرتر</span><span className="rounded-md border border-border bg-background px-3 py-2 font-bold">Solis 125 kW (مخصص لكابينة 260)</span></div>
+            : <>{field("inv", "اسم الانفرتر", "Deye")}{field("invKw", "قدرة الانفرتر (kW)", "12", true)}</>}
+          {field("invN", "عدد الانفرترات", "1", true)}
           {field("cost", "تكلفة المنظومة ($)", "10000", true)}
           {field("price", "سعر لتر الديزل ($)", "1.1", true)}
         </div>
