@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingCart, Download } from "lucide-react";
 
 // تقرير دراسة الجدوى التنفيذي — مقارنة وضع المولد فقط بالمنظومة المقترحة (شمس + تخزين)
-const PSH = 5.5, PR = 0.8, KWH_PER_L = 3.3, DOD = 0.9, CO2_PER_L = 2.68;
+const PSH = 5.5, PR = 1, KWH_PER_L = 3.3, DOD = 0.9, CO2_PER_L = 2.68;
 const PV_USD_KWP = 450, BAT_USD_KWH = 300, INV_USD_KW = 150;
 const BAT_MOD = 16, RACK = 15, PANEL_W = 720;
 const nf = (n: number, d = 0) => n.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -56,7 +56,7 @@ function design(kw: number[], sys?: CustomSystem, target?: number) {
         if (surplus > 0) { charge = Math.min(surplus, cap - soc); soc += charge; }
         if (inWin(h, n)) {
           gen = rest;
-          const top = Math.min(cap - soc, cap * 0.25); soc += top; gen += top;
+          const top = Math.min(cap - soc, cap * 0.25); soc += top;
         } else if (rest > 0) {
           batOut = Math.min(rest, Math.max(0, soc - min)); soc -= batOut; rest -= batOut;
           if (rest > 0.001) { unmet += rest; gen = rest; }
@@ -169,7 +169,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
   const zero = Array(24).fill(0);
   const ys = (v: number) => P.t + (H - P.t - P.b) * (1 - v / 100);
   const noBat = d.batKwh <= 0;
-  const fmtM = (m: number | null) => m === null ? "—" : `${nf(Math.round(m))} شهراً`;
+  const fmtM = (m: number | null) => m === null ? "—" : `${nf(Math.round(m * 10) / 10, 1)} شهراً`;
 
   const [busy, setBusy] = useState(false);
   const download = async () => {
