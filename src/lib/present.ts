@@ -279,6 +279,12 @@ export function buildView(r: BotResult, step: string): View {
     sections.push(...parsed.sections);
   }
 
+  // التجاري لا يرسل «المنظومة المناسبة لك» — نشتق البطاقات العلوية من بنود العرض.
+  if (hasQuote && specs.length === 0) {
+    specs = items
+      .filter((i) => /لوح|ألواح|panel|انفرتر|انفيرتر|إنفرتر|إنفيرتر|inverter|بطارية|كابينة|كبينة|battery/i.test(i.name))
+      .map((i) => ({ title: i.name, lines: [...(i.details || []), `الكمية: ${i.qty}`] }));
+  }
   if (hasQuote && !heading) heading = "عرض السعر الرسمي";
   if (!heading) heading = "أكتس لأنظمة الطاقة وحلولها";
 
