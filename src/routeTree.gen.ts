@@ -15,7 +15,6 @@ import { Route as HithiumRouteImport } from './routes/hithium'
 import { Route as LipowerRouteImport } from './routes/lipower'
 import { Route as PylontechRouteImport } from './routes/pylontech'
 import { Route as SuntechRouteImport } from './routes/suntech'
-import { Route as TmpPrintRouteImport } from './routes/tmp-print'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiPublicOrdersRouteImport } from './routes/api/public/orders'
 import { Route as ApiPublicWaInvoiceRouteImport } from './routes/api/public/wa-invoice'
@@ -50,11 +49,6 @@ const SuntechRoute = SuntechRouteImport.update({
   path: '/suntech',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TmpPrintRoute = TmpPrintRouteImport.update({
-  id: '/tmp-print',
-  path: '/tmp-print',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiTtsRoute = ApiTtsRouteImport.update({
   id: '/api/tts',
   path: '/api/tts',
@@ -78,7 +72,6 @@ export interface FileRoutesByFullPath {
   '/lipower': typeof LipowerRoute
   '/pylontech': typeof PylontechRoute
   '/suntech': typeof SuntechRoute
-  '/tmp-print': typeof TmpPrintRoute
   '/api/tts': typeof ApiTtsRoute
   '/api/public/orders': typeof ApiPublicOrdersRoute
   '/api/public/wa-invoice': typeof ApiPublicWaInvoiceRoute
@@ -90,7 +83,6 @@ export interface FileRoutesByTo {
   '/lipower': typeof LipowerRoute
   '/pylontech': typeof PylontechRoute
   '/suntech': typeof SuntechRoute
-  '/tmp-print': typeof TmpPrintRoute
   '/api/tts': typeof ApiTtsRoute
   '/api/public/orders': typeof ApiPublicOrdersRoute
   '/api/public/wa-invoice': typeof ApiPublicWaInvoiceRoute
@@ -103,7 +95,6 @@ export interface FileRoutesById {
   '/lipower': typeof LipowerRoute
   '/pylontech': typeof PylontechRoute
   '/suntech': typeof SuntechRoute
-  '/tmp-print': typeof TmpPrintRoute
   '/api/tts': typeof ApiTtsRoute
   '/api/public/orders': typeof ApiPublicOrdersRoute
   '/api/public/wa-invoice': typeof ApiPublicWaInvoiceRoute
@@ -117,7 +108,6 @@ export interface FileRouteTypes {
     | '/lipower'
     | '/pylontech'
     | '/suntech'
-    | '/tmp-print'
     | '/api/tts'
     | '/api/public/orders'
     | '/api/public/wa-invoice'
@@ -129,7 +119,6 @@ export interface FileRouteTypes {
     | '/lipower'
     | '/pylontech'
     | '/suntech'
-    | '/tmp-print'
     | '/api/tts'
     | '/api/public/orders'
     | '/api/public/wa-invoice'
@@ -141,7 +130,6 @@ export interface FileRouteTypes {
     | '/lipower'
     | '/pylontech'
     | '/suntech'
-    | '/tmp-print'
     | '/api/tts'
     | '/api/public/orders'
     | '/api/public/wa-invoice'
@@ -154,7 +142,6 @@ export interface RootRouteChildren {
   LipowerRoute: typeof LipowerRoute
   PylontechRoute: typeof PylontechRoute
   SuntechRoute: typeof SuntechRoute
-  TmpPrintRoute: typeof TmpPrintRoute
   ApiTtsRoute: typeof ApiTtsRoute
   ApiPublicOrdersRoute: typeof ApiPublicOrdersRoute
   ApiPublicWaInvoiceRoute: typeof ApiPublicWaInvoiceRoute
@@ -204,13 +191,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuntechRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tmp-print': {
-      id: '/tmp-print'
-      path: '/tmp-print'
-      fullPath: '/tmp-print'
-      preLoaderRoute: typeof TmpPrintRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/tts': {
       id: '/api/tts'
       path: '/api/tts'
@@ -242,7 +222,6 @@ const rootRouteChildren: RootRouteChildren = {
   LipowerRoute: LipowerRoute,
   PylontechRoute: PylontechRoute,
   SuntechRoute: SuntechRoute,
-  TmpPrintRoute: TmpPrintRoute,
   ApiTtsRoute: ApiTtsRoute,
   ApiPublicOrdersRoute: ApiPublicOrdersRoute,
   ApiPublicWaInvoiceRoute: ApiPublicWaInvoiceRoute,
