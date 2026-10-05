@@ -301,7 +301,7 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void
     >
       <div className="relative flex flex-col overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-border/60 transition group-hover:shadow-lg">
         <BrandBadge brand={product.brand} />
-        <button type="button" onClick={() => { warm(); onOpen(); }} aria-label={product.name} className="flex w-full items-center gap-1.5 bg-gradient-to-b from-card to-muted/60 p-2" dir="ltr">
+        <button type="button" onClick={() => { warm(); onOpen(); }} aria-label={product.name} className="flex w-full items-center gap-1.5 bg-linear-to-b from-card to-muted/60 p-2" dir="ltr">
           <span className="relative block aspect-[3/4] w-1/2 shrink-0">
             <img src={product.image} alt={product.name} loading="lazy" decoding="async" width={600} height={800} className="size-full object-contain drop-shadow-md transition duration-500 group-hover:scale-105" />
           </span>
