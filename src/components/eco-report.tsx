@@ -290,6 +290,17 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           </div>
         </Sec>
 
+        <Sec n="02-ب" kicker="ملف الأحمال" title="متوسط الأحمال بالساعة" note={`إجمالي ${nf(d.total, 1)} kWh/يوم • الذروة ${nf(d.peak, 1)} kW • المتوسط ${nf(d.total / 24, 1)} kW`}>
+          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+            {kw.map((v, h) => (
+              <div key={h} className="rounded-md border px-1 py-1.5 text-center" style={{ borderColor: R.line, background: v === d.peak && v > 0 ? "#fde8ea" : "#fff" }}>
+                <p dir="ltr" className="text-[10px] tabular-nums" style={{ color: R.sub }}>{hh(h)}–{hh(h + 1)}</p>
+                <p className="text-[13px] font-black tabular-nums" style={{ color: R.ink }}>{nf(v, 1)} <span className="text-[9px] font-normal">kW</span></p>
+              </div>
+            ))}
+          </div>
+        </Sec>
+
         <Sec n="03" kicker="تحليل الحساسية" title="أثر تغيّر سعر الديزل على الجدوى" note="مصفوفة السيناريوهات عند أسعار ديزل مختلفة بنفس المنظومة والحمل.">
           <table className="w-full text-xs">
             <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">سعر اللتر</th><th className="p-2 text-right">التوفير السنوي</th><th className="p-2 text-right">فترة الاسترداد</th><th className="p-2 text-right">صافي 5 سنوات</th></tr></thead>
