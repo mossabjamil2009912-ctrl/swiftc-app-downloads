@@ -253,7 +253,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             <Kpi t="التغطية النظيفة" v={`${nf(d.clean)} %`} s={`من حمل يومي ${nf(d.total)} kWh`} />
           </div>
         </Sec>
-        <Sec n="03" kicker="تحليل الحساسية" title="أثر تغيّر سعر الديزل على الجدوى" note="مصفوفة السيناريوهات عند أسعار ديزل مختلفة بنفس المنظومة والحمل.">
+        <Sec n="01-ب" kicker="تحليل الحساسية" title="أثر تغيّر سعر الديزل على الجدوى" note="مصفوفة السيناريوهات عند أسعار ديزل مختلفة بنفس المنظومة والحمل.">
           <table className="w-full text-xs">
             <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">سعر اللتر</th><th className="p-2 text-right">التوفير السنوي</th><th className="p-2 text-right">فترة الاسترداد</th><th className="p-2 text-right">صافي 5 سنوات</th></tr></thead>
             <tbody>{sens.map((r) => (
@@ -302,7 +302,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
         </Sec>
 
 
-        <Sec n="03-ب" kicker="المواصفات الفنية" title="مواصفات المعدات المقترحة" note="المواصفات العامة لفئة المعدات المعتمدة؛ تُثبَّت الموديلات النهائية في عرض السعر.">
+        <Sec n="03" kicker="المواصفات الفنية" title="مواصفات المعدات المقترحة" note="المواصفات العامة لفئة المعدات المعتمدة؛ تُثبَّت الموديلات النهائية في عرض السعر.">
           <table className="w-full text-xs">
             <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">المكوّن</th><th className="p-2 text-right">الكمية / القدرة</th><th className="p-2 text-right">المواصفة الفنية</th></tr></thead>
             <tbody>{[
