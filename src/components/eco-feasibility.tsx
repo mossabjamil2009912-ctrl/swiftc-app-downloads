@@ -267,6 +267,7 @@ export function EcoFeasibility({ mode, onSales, onBuy }: { mode: Mode; onSales?:
 /** دراسة جدوى لمنظومة جاهزة حدد العميل سعرها — بلا طلب عرض سعر. */
 export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const [f, setF] = useState({ panel: "", panelW: "", panelN: "", inv: "", invKw: "", invN: "", bat: "", batKwh: "", batN: "", cost: "", price: "1.1" });
+  const [batType, setBatType] = useState<"bat" | "cab">("bat");
   const [done, setDone] = useState(false);
   const [project, setProject] = useState("");
   const [named, setNamed] = useState(false);
@@ -294,7 +295,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const useLoads = lm !== "none" && loadDay > 0;
   // الأحمال للتقرير: أحمال العميل إن وُجدت، وإلا حمل افتراضي يساوي إنتاج المنظومة اليومي
   const reportKw = useLoads ? loadKw : spread(Math.max(1, dailyKwh)).map(Number);
-  const sys: CustomSystem = { panelName: f.panel, panelW: n(f.panelW), panels: n(f.panelN), invName: f.inv, invKw: n(f.invKw), invN: n(f.invN), batName: f.bat, batUnit: n(f.batKwh), batN: n(f.batN), capex };
+  const sys: CustomSystem = { panelName: f.panel, panelW: n(f.panelW), panels: n(f.panelN), invName: f.inv, invKw: n(f.invKw), invN: n(f.invN), batName: f.bat, batUnit: n(f.batKwh), batN: n(f.batN), capex, batKind: batType };
   // نفس محاكاة التقرير: بدون فواقد، المولد لا يشحن البطارية، بدون خصومات صيانة أو تدهور
   const sm = ecoSystemSummary(reportKw, dp, sys);
   const coverage = useLoads ? Math.round(sm.clean * 10) / 10 : null;
@@ -304,18 +305,27 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const rows = Array.from({ length: YEARS }, (_, i) => ({ y: i + 1, cum: Math.round(saving * (i + 1) - capex) }));
   const cum = saving * YEARS - capex;
   const roi = capex > 0 ? Math.round((cum / capex) * 100) : 0;
-  const QUICK: Partial<Record<keyof typeof f, [string, string]>> = {
+  const cab = batType === "cab";
+  const cabKwh = f.bat === "HiTHIUM" ? ["112"] : f.bat === "Pylontech" ? ["260", "313"] : [];
+  const QUICK: Partial<Record<keyof typeof f, string[]>> = {
     panel: ["Suntech 720W", "Suntech 595W"], panelW: ["720", "595"],
-    inv: ["Deye", "Solis"], invKw: ["12", "50"],
-    bat: ["Pylontech", "HiTHIUM"], batKwh: ["5.12", "16"],
+    inv: ["Deye", "Solis"], invKw: ["12", "50", "125"],
+    bat: ["Pylontech", "HiTHIUM"], batKwh: cab ? cabKwh : ["5.12", "16"],
   };
   const field = (k: keyof typeof f, label: string, ph: string, num = false, opt = false) => (
     <label className="grid gap-1">
       <span className="text-xs font-bold">{label}{opt && <span className="text-muted-foreground"> (اختياري)</span>}</span>
-      {QUICK[k] && (
+      {k === "bat" && (
         <span className="grid grid-cols-2 gap-1.5">
+          {([["bat", "بطاريات"], ["cab", "كبائن"]] as const).map(([t, l]) => (
+            <button key={t} type="button" onClick={() => { setBatType(t); setF({ ...f, bat: "", batKwh: "" }); }} className={`rounded-md border px-2 py-1.5 text-xs font-bold transition ${batType === t ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{l}</button>
+          ))}
+        </span>
+      )}
+      {QUICK[k] && QUICK[k]!.length > 0 && (
+        <span className={`grid gap-1.5 ${QUICK[k]!.length === 3 ? "grid-cols-3" : QUICK[k]!.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
           {QUICK[k]!.map((q) => (
-            <button key={q} type="button" onClick={() => setF({ ...f, [k]: q })} className={`rounded-md border px-2 py-1.5 text-xs font-bold transition ${f[k] === q ? "border-brand bg-brand text-brand-foreground" : "border-border bg-card hover:border-brand/50"}`}>{q}</button>
+            <button key={q} type="button" onClick={() => setF(k === "bat" && cab ? { ...f, bat: q, batKwh: q === "HiTHIUM" ? "112" : "" } : { ...f, [k]: q })} className={`rounded-md border px-2 py-1.5 text-xs font-bold transition ${f[k] === q ? "border-brand bg-brand text-brand-foreground" : "border-border bg-card hover:border-brand/50"}`}>{q}</button>
           ))}
         </span>
       )}
@@ -339,9 +349,9 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
           {field("inv", "اسم الانفرتر", "Deye")}
           {field("invKw", "قدرة الانفرتر (kW)", "12", true)}
           {field("invN", "عدد الانفرترات", "1", true)}
-          {field("bat", "اسم البطارية", "Pylontech", false, true)}
-          {field("batKwh", "سعة البطارية (kWh)", "5", true, true)}
-          {field("batN", "عدد البطاريات", "2", true, true)}
+          {field("bat", cab ? "اسم الكابينة" : "اسم البطارية", "Pylontech", false, true)}
+          {field("batKwh", cab ? "سعة الكابينة (kWh)" : "سعة البطارية (kWh)", cab ? "260" : "5", true, true)}
+          {field("batN", cab ? "عدد الكبائن" : "عدد البطاريات", cab ? "3" : "2", true, true)}
           {field("cost", "تكلفة المنظومة ($)", "10000", true)}
           {field("price", "سعر لتر الديزل ($)", "1.1", true)}
         </div>
@@ -386,7 +396,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
         <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-4">
           <div>الألواح<br /><b>{f.panel} — {f.panelN} × {f.panelW}W = {nf(kwp, 2)} kWp</b></div>
           <div>الانفرتر<br /><b>{f.inv} — {f.invN} × {f.invKw} kW</b></div>
-          <div>البطاريات<br /><b>{batKwh > 0 ? `${f.bat} — ${f.batN} × ${f.batKwh} kWh` : "بدون"}</b></div>
+          <div>{cab ? "الكبائن" : "البطاريات"}<br /><b>{batKwh > 0 ? `${f.bat} — ${f.batN} × ${f.batKwh} kWh` : "بدون"}</b></div>
           <div>التكلفة<br /><b className="tabular-nums">{nf(capex)} $</b></div>
         </div>
       </div>
