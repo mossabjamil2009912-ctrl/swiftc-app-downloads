@@ -16,7 +16,7 @@ function toTop() {
 type Mode = "diesel" | "loads";
 
 const PSH = 5.5; // ساعات الذروة الشمسية في اليمن
-const PR = 0.8; // نسبة أداء المنظومة
+const PR = 1; // نسبة أداء المنظومة
 const KWH_PER_L = 3.3; // كيلوواط ساعة لكل لتر ديزل في المولدات
 const PV_USD_KWP = 450; // ألواح + تركيب لكل kWp
 const BAT_USD_KWH = 300; // بطاريات ليثيوم لكل kWh
