@@ -307,7 +307,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           <table className="w-full text-xs">
             <thead><tr className="bg-navy text-primary-foreground"><th className="p-2 text-right">المكوّن</th><th className="p-2 text-right">الكمية / القدرة</th><th className="p-2 text-right">المواصفة الفنية</th></tr></thead>
             <tbody>{[
-              ["الألواح الشمسية", `${d.panelLabel} — ${nf(d.kwp, 2)} kWp`, "خلايا أحادية البلورة عالية الكفاءة، مقاومة للحرارة والغبار، ضمان أداء طويل الأمد"],
+              ["الألواح الشمسية", `${d.panelLabel} — ${nf(d.kwp, 2)} kWp`, d.panels > 0 && d.kwp * 1000 / d.panels >= 700 ? "Suntech STP720S-D66/Nsh+ — N-Type TOPCon ثنائي الوجه زجاج/زجاج، كفاءة 23.2%، معامل حرارة -0.29%/°C، 2384×1303×33 مم، 37.3 كغ، ضمان 15 سنة منتج و30 سنة أداء (تدهور 0.40%/سنة)" : d.panels > 0 && Math.abs(d.kwp * 1000 / d.panels - 590) <= 10 ? "Suntech STP595S-C72/Nsh+ — N-Type TOPCon ثنائي الوجه، كفاءة حتى 23.2%، 2278×1134×30 مم، 32 كغ، ضمان 15 سنة منتج و30 سنة أداء" : "خلايا أحادية البلورة عالية الكفاءة، مقاومة للحرارة والغبار، ضمان أداء طويل الأمد"],
               ["الإنفرترات الهجينة", `${d.invN} × ${d.invBrand} ${d.unit} kW`, "تحويل نقي (Pure Sine)، متتبع MPPT متعدد، حماية من الغبار والرطوبة، مراقبة عن بعد"],
               ...(noBat ? [] : [["بطاريات الليثيوم", `${d.batLabel} — ${nf(d.batKwh)} kWh`, `كيمياء LiFePO4 آمنة، عمق تفريغ ${DOD * 100}%، نظام إدارة بطاريات BMS ذكي`]]),
               ["كابلات DC/AC", "حسب التصميم الهندسي", "كابلات شمسية مقاومة للأشعة فوق البنفسجية، مقاطع محسوبة لفاقد جهد أقل من 2%"],
@@ -317,8 +317,10 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           </table>
           {(() => {
             const w = d.panels > 0 ? (d.kwp * 1000) / d.panels : 0;
-            const m2 = d.panels * (w / 232); // ≈ 23% كفاءة لوح أحادي البلورة
-            const kg = d.panels * (w / 19);
+            // أبعاد وأوزان رسمية من ورقة مواصفات Suntech؛ غير ذلك تقدير بالكفاءة
+            const spec = w >= 700 ? { a: 2.384 * 1.303, kg: 37.3 } : w >= 580 && w <= 600 ? { a: 2.278 * 1.134, kg: 32.0 } : { a: w / 232, kg: w / 19 };
+            const m2 = d.panels * spec.a;
+            const kg = d.panels * spec.kg;
             return (
               <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
                 {[["مساحة الألواح الصافية", `${nf(m2)} م²`], ["مساحة السطح المطلوبة", `≈ ${nf(m2 * 1.5)} م²`], ["وزن الألواح", `≈ ${nf(kg / 1000, 1)} طن`], ["الحمل على السطح", `≈ ${nf((kg * 1.25) / (m2 || 1), 1)} كغ/م²`]].map(([a, b]) => (
