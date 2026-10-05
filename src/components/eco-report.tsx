@@ -12,7 +12,7 @@ const C = { sun: "#f5a01e", bat: "#15803d", gen: "#7f1d1d", load: "#e60012", gri
 type Hour = { h: number; load: number; pv: number; direct: number; batOut: number; charge: number; gen: number; soc: number };
 
 export type EcoResults = { dailyKwh: number; yearKwh: number; loadDay: number | null; coverage: number | null; liters: number; saving: number; payback: number | null; cum: number; roi: number; wattCost: string; years: number; rows: { y: number; cum: number }[] };
-export type CustomSystem = { panelName: string; panelW: number; panels: number; invName: string; invKw: number; invN: number; batName: string; batUnit: number; batN: number; capex: number };
+export type CustomSystem = { panelName: string; panelW: number; panels: number; invName: string; invKw: number; invN: number; batName: string; batUnit: number; batN: number; capex: number; batKind?: "bat" | "cab" };
 
 function design(kw: number[], sys?: CustomSystem, target?: number) {
   const total = kw.reduce((s, v) => s + v, 0);
@@ -34,7 +34,7 @@ function design(kw: number[], sys?: CustomSystem, target?: number) {
   const invBrand = sys ? sys.invName : unit >= 125 ? "Solis" : "Deye";
   const pvKw = sys ? Math.min(kwp, unit * invN * 1.3) : kwp;
   const panelLabel = sys ? `${panels} لوح ${sys.panelName} ${sys.panelW}W` : `${panels} لوح سنتك ${PANEL_W}W`;
-  const batLabel = sys ? (batKwh > 0 ? `${mods} بطارية ${sys.batName} ${sys.batUnit}kWh` : "بدون بطاريات") : mods === 0 ? "بدون بطاريات" : peak <= 16 ? `${mods} بطارية Pylontech ${smallBat}kWh` : `${racks} راك × ${mods} بطارية ${BAT_MOD}kWh`;
+  const batLabel = sys ? (batKwh > 0 ? `${mods} ${sys.batKind === "cab" ? (mods > 2 && mods < 11 ? "كبائن" : "كابينة") : "بطارية"} ${sys.batName} ${sys.batUnit}kWh` : "بدون بطاريات") : mods === 0 ? "بدون بطاريات" : peak <= 16 ? `${mods} بطارية Pylontech ${smallBat}kWh` : `${racks} راك × ${mods} بطارية ${BAT_MOD}kWh`;
   // منحنى الإنتاج الشمسي (جيبي من 6 إلى 18)
   const shape = Array.from({ length: 24 }, (_, h) => (h >= 6 && h < 18 ? Math.sin((Math.PI * (h + 0.5 - 6)) / 12) : 0));
   const sSum = shape.reduce((a, b) => a + b, 0);
