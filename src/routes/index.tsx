@@ -88,7 +88,8 @@ import actesAvatar from "@/assets/actes-a-mark.webp";
 import actesMark from "@/assets/actes-a-mark.webp";
 import actesWordmark from "@/assets/actes-logo-full.webp";
 
-import { findCatalogProductForSpec } from "@/lib/products-data";
+import { findCatalogProductForSpec, type Product as CatalogProduct } from "@/lib/products-data";
+import { officialCatalogUrl } from "@/lib/official-catalogs";
 import { itemImage } from "@/lib/item-images";
 
 import { runBot, type BotResult, type BotSession } from "@/lib/bot-engine.js";
@@ -2475,6 +2476,37 @@ function AsideBenefit({ icon, text }: { icon: ReactNode; text: string }) {
   return <div className="flex items-center gap-3 px-3 py-3 text-xs font-bold text-skyline [&_svg]:size-5">{icon}<span>{text}</span></div>;
 }
 
+/** المنتج المعتمد المطابق لبند عرض السعر (ألواح / إنفرتر / بطارية / كابينة). */
+function productForQuoteItem(text: string): CatalogProduct | null {
+  if (/لوح|ألواح|panel/i.test(text)) return findCatalogProductForSpec(text, "panels");
+  if (/انفرتر|إنفرتر|عاكس|inverter/i.test(text)) return findCatalogProductForSpec(text, "inverters", text);
+  if (/بطارية|بطاريات|كابينة|كبينة|تخزين|battery/i.test(text)) return findCatalogProductForSpec(text, "batteries", text);
+  return null;
+}
+
+/** كل مواصفات الصنف المعتمدة + زرّا الكتالوج العربي والإنجليزي. */
+function QuoteItemSpecs({ text }: { text: string }) {
+  const product = productForQuoteItem(text);
+  if (!product) return null;
+  const rows = product.specs.flatMap((g) => g.rows);
+  const ar = officialCatalogUrl(product, "ar");
+  const en = officialCatalogUrl(product, "en");
+  return (
+    <div className="mt-1.5 border-t border-black/30 pt-1.5">
+      <p className="text-[10px] font-bold" dir="ltr">{product.brand} — {product.model}</p>
+      <ul className="mt-1 grid gap-x-3 gap-y-0.5 text-[10px] leading-4 sm:grid-cols-2">
+        {rows.map(([k, v], i) => <li key={i}><span className="font-bold">{k}:</span> {v}</li>)}
+      </ul>
+      {(ar || en) && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {ar && <a href={ar} target="_blank" rel="noopener" className="rounded border border-black px-2 py-0.5 text-[10px] font-bold hover:bg-black/5">كتالوج عربي</a>}
+          {en && <a href={en} target="_blank" rel="noopener" className="rounded border border-black px-2 py-0.5 text-[10px] font-bold hover:bg-black/5">English Catalog</a>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function QuoteCard({ quote }: { quote: NonNullable<View["quote"]> }) {
   return (
     <section className="mt-1">
@@ -2499,7 +2531,7 @@ function QuoteCard({ quote }: { quote: NonNullable<View["quote"]> }) {
               {quote.items.map((item, index) => (
                 <tr key={index} className="align-top">
                   <td className="border border-black p-1.5 text-center font-bold">{index + 1}</td>
-                  <td className="border border-black p-1.5 text-right"><p className="text-[12px] font-bold leading-5">{item.name}</p>{item.details.map((detail, detailIndex) => <p key={detailIndex} className="text-[10px] leading-4">{detail}</p>)}</td>
+                  <td className="border border-black p-1.5 text-right"><p className="text-[12px] font-bold leading-5">{item.name}</p>{item.details.map((detail, detailIndex) => <p key={detailIndex} className="text-[10px] leading-4">{detail}</p>)}<QuoteItemSpecs text={[item.name, ...item.details].join(" ")} /></td>
                   <td className="border border-black p-1.5 text-center font-bold">{item.unit}</td>
                   <td className="border border-black p-1.5 text-center font-bold">{item.qty}</td>
                   <td className="border border-black p-1.5 text-center font-bold">{money(Number(item.price) || 0)}</td>
