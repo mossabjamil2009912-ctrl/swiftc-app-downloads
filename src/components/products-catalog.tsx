@@ -274,11 +274,11 @@ function makerLogo(b: string) {
 function BrandBadge({ brand, large = false }: { brand: string; large?: boolean }) {
   const logo = makerLogo(brand);
   return (
-    <span dir="ltr" className={`pointer-events-none flex w-full items-center justify-between gap-2 border-b border-border/70 bg-card ${large ? "h-14 px-3" : "h-8 px-2"}`}>
-      <span className={`flex items-center font-black tracking-wide text-navy ${large ? "text-base" : "text-[11px]"}`}>
-        {logo ? <img src={logo} alt={brandLabel(brand)} className={large ? "h-7 w-auto max-w-36" : "h-4 w-auto max-w-20"} /> : brandLabel(brand)}
+    <span dir="ltr" className={`pointer-events-none flex w-full items-center justify-between gap-2 border-b border-border/70 bg-card ${large ? "h-14 px-3" : "h-7 px-2"}`}>
+      <span className={`flex items-center font-black tracking-wide text-navy ${large ? "text-base" : "text-[10px]"}`}>
+        {logo ? <img src={logo} alt={brandLabel(brand)} className={large ? "h-7 w-auto max-w-36" : "h-3.5 w-auto max-w-16"} /> : brandLabel(brand)}
       </span>
-      <img src="/brand/actes-logo-full.png" alt="ACTES" className={large ? "h-10 w-auto" : "h-5 w-auto"} />
+      <img src="/brand/actes-logo-full.png" alt="ACTES" className={large ? "h-10 w-auto" : "h-4 w-auto"} />
     </span>
   );
 }
@@ -291,37 +291,59 @@ function ProductCard({ product, onOpen }: { product: Product; onOpen: () => void
   };
   const arCatalog = officialCatalogUrl(product, "ar");
   const [viewAr, setViewAr] = useState(false);
+  const color = brandColor(product.brand);
+  const specs = quickSpecs(product, 12).map(([, v]) => String(v)).filter((v) => /[A-Za-z\u0600-\u06FF]/.test(v) && v.length < 28 && v !== product.power).slice(0, 3);
   return (
     <article
       onPointerEnter={warm}
       onTouchStart={warm}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card text-right shadow-sm transition hover:border-navy/40 hover:shadow-md"
+      className="group flex flex-col gap-2 text-right"
     >
-      <BrandBadge brand={product.brand} />
-      <button type="button" onClick={() => { warm(); onOpen(); }} aria-label={product.name} className="relative block aspect-square w-full overflow-hidden bg-background">
-        <img src={product.image} alt={product.name} loading="lazy" decoding="async" width={800} height={800} className="size-full object-contain p-2 transition duration-500 group-hover:scale-105" />
-      </button>
-
-      <div className="flex flex-1 flex-col gap-1 border-t border-border/70 px-2.5 pb-2.5 pt-2">
-        <h3 className="line-clamp-2 text-[11px] font-black leading-tight text-navy lg:text-[12.5px]">{product.name}</h3>
-        <div className="flex items-center justify-between gap-1" dir="ltr">
-          <span className="truncate text-[9.5px] font-semibold text-muted-foreground lg:text-[10.5px]">{product.model}</span>
-          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] font-black text-navy lg:text-[11px]">{product.power}</span>
-        </div>
-        <div className="mt-auto flex gap-1 pt-1">
-          <button type="button" onClick={() => { warm(); onOpen(); }} className="inline-flex flex-1 items-center justify-center gap-1 rounded-md bg-navy px-2 py-1.5 text-[11px] font-bold text-primary-foreground transition hover:opacity-90 lg:text-xs">
-            عرض المنتج
-          </button>
-          {arCatalog && (
-            <button type="button" onClick={() => setViewAr(true)} aria-label="كتالوج المنتج بالعربية" title="كتالوج المنتج بالعربية" className="grid size-8 shrink-0 place-items-center rounded-md border border-border text-navy transition hover:bg-muted">
-              <FileText className="size-3.5" />
-            </button>
-          )}
-        </div>
-        {viewAr && arCatalog && <PdfViewer file={{ kind: "Datasheet", label: `كتالوج ${product.model} (عربي)`, url: arCatalog }} onClose={() => setViewAr(false)} />}
+      <div className="relative flex flex-col overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-border/60 transition group-hover:shadow-lg">
+        <BrandBadge brand={product.brand} />
+        <button type="button" onClick={() => { warm(); onOpen(); }} aria-label={product.name} className="flex w-full items-center gap-1.5 bg-linear-to-b from-card to-muted/60 p-2" dir="ltr">
+          <span className="relative block aspect-[3/4] w-1/2 shrink-0">
+            <img src={product.image} alt={product.name} loading="lazy" decoding="async" width={600} height={800} className="size-full object-contain drop-shadow-md transition duration-500 group-hover:scale-105" />
+          </span>
+          <span className="flex min-w-0 flex-1 flex-col items-stretch rounded-md bg-card/95 p-1.5 text-center shadow-sm ring-1 ring-border/50">
+            <span className="text-[10px] font-black leading-tight text-navy lg:text-xs">{CAT_EN[product.category]}</span>
+            <span className="my-1 truncate rounded px-1 py-1 text-[11px] font-black lg:text-sm" style={{ background: color, color: "#fff" }}>{product.power}</span>
+            {specs.map((s, i) => (
+              <span key={i} className="truncate border-b border-border/60 py-0.5 text-[8.5px] font-semibold text-muted-foreground last:border-0 lg:text-[10px]">{s}</span>
+            ))}
+          </span>
+        </button>
       </div>
+      <button type="button" onClick={() => { warm(); onOpen(); }} dir="ltr" className="line-clamp-2 rounded-lg bg-navy px-2 py-1.5 text-center text-[9.5px] font-bold leading-snug text-primary-foreground transition hover:opacity-90 lg:text-[11px]">
+        {product.model}
+      </button>
+      {arCatalog && (
+        <button type="button" onClick={() => setViewAr(true)} className="inline-flex items-center justify-center gap-1 text-[10px] font-bold text-muted-foreground hover:text-navy">
+          <FileText className="size-3" /> كتالوج عربي
+        </button>
+      )}
+      {viewAr && arCatalog && <PdfViewer file={{ kind: "Datasheet", label: `كتالوج ${product.model} (عربي)`, url: arCatalog }} onClose={() => setViewAr(false)} />}
     </article>
   );
+}
+
+const CAT_EN: Record<ProductCategory, string> = {
+  panels: "Solar Panel",
+  inverters: "Hybrid Inverter",
+  batteries: "Lithium Battery",
+  storage: "Energy Storage",
+};
+
+/** اللون الرسمي لكل شركة لكبسولة القدرة. */
+function brandColor(b: string) {
+  const k = brandLabel(b).toLowerCase().replace(/[^a-z]/g, "");
+  if (k.includes("deye")) return "#0072ce";
+  if (k.includes("solis")) return "#f06e1e";
+  if (k.includes("lipower")) return "#e60045";
+  if (k.includes("pylontech")) return "#002b66";
+  if (k.includes("hithium")) return "#10b981";
+  if (k.includes("suntech")) return "#dc2626";
+  return "#1f2937";
 }
 
 function Section({ icon, title, children, defaultOpen = false }: { icon: ReactNode; title: string; children: ReactNode; defaultOpen?: boolean }) {
