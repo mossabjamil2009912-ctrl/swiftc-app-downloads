@@ -5,5 +5,5 @@ const kw = [129.7, 123.3, 109.4, 106.7, 99.0, 99.1, 85.6, 85.6, 93.6, 112.4, 124
 const sys = { panelName: "Suntech STP720S-D66/Nsh+", panelW: 720, panels: 576, invName: "Pylontech 125kW", invKw: 125, invN: 3, batName: "Pylontech OPTIM US L260-HY-M7", batUnit: 260, batN: 3, capex: 279183 };
 
 export const Route = createFileRoute("/tmp-print")({
-  component: () => <div dir="rtl"><EcoReport kw={kw} price={1.1} project="مصنع أرض الخليج للبلاستيك" system={sys} hideActions /></div>,
+  component: () => <div dir="rtl"><EcoReport kw={kw} price={1.1} project="مصنع أرض الخليج للبلاستيك" system={sys} hideActions autoDownload /></div>,
 });
