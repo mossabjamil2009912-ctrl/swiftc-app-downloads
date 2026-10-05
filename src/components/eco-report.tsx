@@ -169,7 +169,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
   const zero = Array(24).fill(0);
   const ys = (v: number) => P.t + (H - P.t - P.b) * (1 - v / 100);
   const noBat = d.batKwh <= 0;
-  const fmtM = (m: number | null) => m === null ? "—" : m < 24 ? `${nf(m, 1)} شهر` : `${nf(m / 12, 1)} سنة`;
+  const fmtM = (m: number | null) => m === null ? "—" : `${nf(Math.round(m))} شهراً`;
 
   const [busy, setBusy] = useState(false);
   const download = async () => {
@@ -247,7 +247,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
             {noBat ? <Kpi t="توفير الديزل" v={`${nf(e.savedL * 365)} لتر/سنة`} s={`≈ ${nf(e.savedL)} لتر/يوم`} /> : <Kpi t="سعة التخزين المركبة" v={`${nf(d.batKwh)} kWh`} s={d.batLabel} />}
             <Kpi t="التكلفة الاستثمارية" v={`${nf(d.capex)} $`} s="CAPEX" />
             <Kpi hot t="التوفير المالي السنوي" v={`${nf(e.saving)} $`} s={`عند ${nf(price0, 3)} $/L`} />
-            <Kpi hot t="فترة الاسترداد" v={fmtM(e.months)} s={e.months ? `≈ ${nf(e.months / 12, 2)} سنة` : undefined} />
+            <Kpi hot t="فترة الاسترداد" v={fmtM(e.months)} s={undefined} />
             <Kpi t="صافي التوفير خلال 5 سنوات" v={`${nf(e.net5)} $`} s="توفير تراكمي" />
             <Kpi t="إيقاف المولد" v={`${offH} ساعة/يوم`} s={`${nf(offH * 365)} ساعة سنوياً`} />
             <Kpi t="التغطية النظيفة" v={`${nf(d.clean)} %`} s={`من حمل يومي ${nf(d.total)} kWh`} />
