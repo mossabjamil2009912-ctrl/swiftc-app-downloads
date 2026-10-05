@@ -268,12 +268,11 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
                   ["الإنفرترات", "لا يوجد", `${d.invN} وحدة ${d.invBrand} × ${d.unit} kW`],
                   ...(noBat ? [] : [["بطاريات الليثيوم", "لا يوجد", `${d.batLabel} — ${nf(d.batKwh)} kWh (${nf(d.batKwh * DOD)} kWh عند ${DOD * 100}% DoD)`]]),
                   ...(d.custom || noBat ? [] : [["راكات التخزين", "لا يوجد", `${d.racks} راك`]]),
-                  ["ساعات تشغيل المولد", `${d.baseHours} ساعة/يوم`, `${d.genHours} ساعة/يوم (إيقاف ${offH} ساعة)`],
+                  ["ساعات تشغيل المولد", `${d.baseHours} ساعة/يوم`, `${d.genHours} ساعة/يوم`],
                   ["استهلاك الديزل اليومي", `${nf(e.baseL)} لتر`, `${nf(e.newL)} لتر/يوم`],
                   ["استهلاك الديزل السنوي", `${nf(e.baseL * 365)} لتر`, `${nf(e.newL * 365)} لتر (توفير ${nf(e.savedL * 365)} لتر)`],
                   ["التكلفة التشغيلية السنوية", `$${nf(e.baseL * 365 * price0)}`, `$${nf(e.newL * 365 * price0)} (توفير $${nf(e.saving)})`],
                   ["نسبة التغطية النظيفة", "0%", `${nf(d.clean)}% (${nf(d.solarPct)}% شمس + ${nf(d.clean - d.solarPct)}% بطاريات)`],
-                  ["خفض انبعاثات CO₂", "خط الأساس", `${nf(e.co2)} طن/سنة`],
                   ["الاستثمار المطلوب", "$0", `$${nf(d.capex)} — استرداد خلال ${fmtM(e.months)}`],
                 ].map(([a, b, c], i) => (
                   <tr key={a} className={i % 2 ? "bg-muted/40" : ""}><td className="p-2 font-bold">{a}</td><td className="p-2 text-muted-foreground">{b}</td><td className="p-2 font-bold text-navy">{c}</td></tr>
@@ -410,7 +409,6 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
               ["خفض انبعاثات CO₂ سنوياً", `${nf(e.co2)} طن`],
               ["خفض الانبعاثات خلال 25 سنة", `${nf(e.co2 * 25)} طن`],
               ["مكافئ براميل النفط الموفّرة سنوياً", `${nf((e.savedL * 365) / 159)} برميل`],
-              ["ساعات إراحة المولد سنوياً", `${nf(offH * 365)} ساعة`],
               ["خفض تقديري لعمرات وزيوت وفلاتر المولد", `${nf(Math.max(0, Math.min(100, (1 - d.genHours / Math.max(d.baseHours, 1)) * 100)))}%`],
             ].map(([a, b]) => <tr key={a} className="border-b border-border"><td className="p-2">{a}</td><td className="p-2 font-bold text-navy">{b}</td></tr>)}</tbody></table>
             <table className="w-full text-xs"><tbody>{[
