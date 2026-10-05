@@ -274,7 +274,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const [named, setNamed] = useState(false);
   useEffect(() => { try { setProject(sessionStorage.getItem(PROJECT_KEY) ?? ""); } catch { /* ignore */ } }, []);
   useEffect(() => { toTop(); }, [done, named]);
-  const [lm, setLm] = useState<"none" | "loads" | "diesel">("none");
+  const [lm, setLm] = useState<"loads" | "diesel">("loads");
   const [hrs, setHrs] = useState<string[]>(() => Array(24).fill(""));
   const [total, setTotal] = useState("");
   const [one, setOne] = useState("");
@@ -285,7 +285,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const batKwh = n(f.batKwh) * n(f.batN);
   const capex = n(f.cost);
   const dp = n(f.price);
-  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0;
+  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0 && loadDay > 0;
   // الإنتاج اليومي محدود بقدرة الانفرتر
   const dailyKwh = Math.min(kwp, invKw * 1.3) * PSH * PR;
   const yearKwh = dailyKwh * 365;
@@ -293,7 +293,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const spread = (t: number) => { const w = Array.from({ length: 24 }, (_, h) => (DAY(h) ? 2 : 1)); const s = w.reduce((a, b) => a + b, 0); return w.map((x) => String(Math.round((t * x / s) * 100) / 100)); };
   const loadKw = hrs.map((v) => n(v) * (lm === "diesel" ? KWH_PER_L : 1));
   const loadDay = loadKw.reduce((a, b) => a + b, 0);
-  const useLoads = lm !== "none" && loadDay > 0;
+  const useLoads = loadDay > 0;
   // الأحمال للتقرير: أحمال العميل إن وُجدت، وإلا حمل افتراضي يساوي إنتاج المنظومة اليومي
   const reportKw = useLoads ? loadKw : spread(Math.max(1, dailyKwh)).map(Number);
   const sys: CustomSystem = { panelName: f.panel, panelW: n(f.panelW), panels: n(f.panelN), invName: f.inv, invKw: n(f.invKw), invN: n(f.invN), batName: f.bat, batUnit: n(f.batKwh), batN: n(f.batN), capex, batKind: batType };
@@ -374,14 +374,14 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
           {field("price", "سعر لتر الديزل ($)", "1.1", true)}
         </div>
         <div className="mt-5 rounded-md border border-border bg-background p-4">
-          <p className="text-xs font-black">بيانات الأحمال <span className="font-normal text-muted-foreground">(اختياري — لحساب التغطية والتوفير الفعلي)</span></p>
+          <p className="text-xs font-black">بيانات الأحمال <span className="font-normal text-muted-foreground">(مطلوب — لحساب التغطية والتوفير الفعلي)</span></p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {([["none", "بدون"], ["loads", "بيانات الأحمال (kW)"], ["diesel", "بيانات الديزل (لتر/ساعة)"]] as const).map(([k, l]) => (
+            {([["loads", "بيانات الأحمال (kW)"], ["diesel", "بيانات الديزل (لتر/ساعة)"]] as const).map(([k, l]) => (
               <button key={k} type="button" onClick={() => setLm(k)} className={`rounded-md border px-3 py-1.5 text-xs font-bold ${lm === k ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>{l}</button>
             ))}
           </div>
           <LoadPdfImport onApply={(v, c) => { setLm("loads"); setHrs(v); if (c?.trim()) { setProject(c.trim()); try { sessionStorage.setItem(PROJECT_KEY, c.trim()); } catch { /* ignore */ } } }} />
-          {lm !== "none" && (
+          {(
             <div className="mt-3 space-y-3">
               <div className="flex flex-wrap items-end gap-2">
                 <label className="grid gap-1"><span className="text-xs font-bold">الإجمالي ليوم واحد ({lm === "diesel" ? "لتر/يوم" : "kWh/يوم"})</span>
