@@ -151,12 +151,12 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
   const d = useMemo(() => design(kw, system, target), [kw, system, target]);
   const e0 = econ(d.total, d.genE, d.capex, price0);
   const e1 = results ? (() => { const savedL = results.liters / 365; const newL = Math.max(0, e0.baseL - savedL); return { ...e0, savedL, newL, saving: results.saving, months: results.payback ? results.payback * 12 : null, sav5: results.saving * 5, net5: results.saving * 5 - d.capex, co2: (results.liters * CO2_PER_L) / 1000, cut: e0.baseL > 0 ? Math.min(100, (savedL / e0.baseL) * 100) : 0 }; })() : e0;
-  const e = { ...e1, months: (() => { let cum = -d.capex; for (let y = 1; y <= 30; y++) { const net = e1.saving * Math.pow(0.995, y - 1) - d.capex * 0.01; if (net <= 0) return null; const prev = cum; cum += net; if (cum >= 0) return (y - 1 + Math.abs(prev) / net) * 12; } return null; })() };
+  // استرداد بسيط بدون خصومات: التكلفة ÷ التوفير السنوي
+  const e = { ...e1, months: e1.saving > 0 ? (d.capex / e1.saving) * 12 : null };
   const cleanKwhY = d.total * (d.clean / 100) * 365;
   const lcoe = cleanKwhY > 0 ? d.capex / (cleanKwhY * 20) : 0;
   const roi = d.capex > 0 ? (e.saving / d.capex) * 100 : 0;
-  // نفس معادلة الاسترداد في كل الصفحات: تدفق نقدي سنوي مع تدهور الألواح 0.5% وصيانة 1% من التكلفة
-  const pb = (sv: number) => { let cum = -d.capex; for (let y = 1; y <= 30; y++) { const net = sv * Math.pow(0.995, y - 1) - d.capex * 0.01; if (net <= 0) return null; const prev = cum; cum += net; if (cum >= 0) return (y - 1 + Math.abs(prev) / net) * 12; } return null; };
+  const pb = (sv: number) => (sv > 0 ? (d.capex / sv) * 12 : null);
   const sens = [0.7, 0.85, 1, 1.15, 1.3].map((f) => { const sv = e.saving * f; return { pr: price0 * f, sv, m: f === 1 ? e.months : pb(sv), n5: sv * 5 - d.capex, cur: f === 1 }; });
   const ref = useRef<HTMLDivElement>(null);
   const offH = 24 - d.genHours;
@@ -371,10 +371,10 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
           </div>
         </Sec>
 
-        <Sec n="06" kicker="التدفق النقدي" title="التدفق النقدي التراكمي ولحظة استرداد رأس المال" note={`نقطة التعادل بعد ${fmtM(e.months)} • تدهور الألواح 0.5% سنوياً وصيانة 1% من التكلفة`}>
+        <Sec n="06" kicker="التدفق النقدي" title="التدفق النقدي التراكمي ولحظة استرداد رأس المال" note={`نقطة التعادل بعد ${fmtM(e.months)} • توفير ثابت بدون خصومات صيانة أو تدهور`}>
           {(() => {
             const N = 10; const cf: number[] = [-d.capex];
-            for (let y = 1; y <= N; y++) cf.push(cf[y - 1]! + e1.saving * Math.pow(0.995, y - 1) - d.capex * 0.01);
+            for (let y = 1; y <= N; y++) cf.push(cf[y - 1]! + e1.saving);
             const W = 720, Hc = 220, pl = 64, pr = 12, pt = 14, pb = 26;
             const mx = Math.max(...cf, 1), mn = Math.min(...cf, 0);
             const xs = (i: number) => pl + ((W - pl - pr) / (N + 1)) * (i + 0.5);
