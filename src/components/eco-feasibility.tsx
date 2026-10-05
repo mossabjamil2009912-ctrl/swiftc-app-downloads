@@ -23,8 +23,6 @@ const BAT_USD_KWH = 300; // بطاريات ليثيوم لكل kWh
 const INV_USD_KW = 150; // انفرتر هجين لكل kW
 const DOD = 0.9;
 const YEARS = 25;
-const DEG = 0.005;
-const OM = 0.01;
 const DAY = (h: number) => h >= 7 && h < 17;
 
 const hourLabel = (h: number) => {
