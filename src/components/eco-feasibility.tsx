@@ -285,7 +285,6 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const batKwh = n(f.batKwh) * n(f.batN);
   const capex = n(f.cost);
   const dp = n(f.price);
-  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0 && loadDay > 0;
   // الإنتاج اليومي محدود بقدرة الانفرتر
   const dailyKwh = Math.min(kwp, invKw * 1.3) * PSH * PR;
   const yearKwh = dailyKwh * 365;
@@ -294,6 +293,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const loadKw = hrs.map((v) => n(v) * (lm === "diesel" ? KWH_PER_L : 1));
   const loadDay = loadKw.reduce((a, b) => a + b, 0);
   const useLoads = loadDay > 0;
+  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0 && loadDay > 0;
   // الأحمال للتقرير: أحمال العميل إن وُجدت، وإلا حمل افتراضي يساوي إنتاج المنظومة اليومي
   const reportKw = useLoads ? loadKw : spread(Math.max(1, dailyKwh)).map(Number);
   const sys: CustomSystem = { panelName: f.panel, panelW: n(f.panelW), panels: n(f.panelN), invName: f.inv, invKw: n(f.invKw), invN: n(f.invN), batName: f.bat, batUnit: n(f.batKwh), batN: n(f.batN), capex, batKind: batType };
