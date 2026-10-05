@@ -311,10 +311,14 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const fixedInv = cab && f.batKwh === "260";
   const QUICK: Partial<Record<keyof typeof f, string[]>> = {
     panel: ["Suntech 720W", "Suntech 595W"], panelW: ["720", "595"],
-    inv: ["Deye", "Solis"], invKw: ["12", "50", "125"],
+    inv: ["Deye", "Solis"], invKw: cab && (f.batKwh === "313" || f.batKwh === "112") ? ["50", "80", "125"] : ["12", "50", "125"],
     bat: ["Pylontech", "HiTHIUM"], batKwh: cab ? cabKwh : ["5.12", "16"],
   };
   const pickQuick = (k: keyof typeof f, q: string) => {
+    if (!manual.has(k) && f[k] === q) {
+      setManual((m) => new Set(m).add(k));
+      return setF({ ...f, [k]: "" });
+    }
     setManual((m) => { const s = new Set(m); s.delete(k); return s; });
     if (k === "bat" && cab) return setF({ ...f, bat: q, batKwh: q === "HiTHIUM" ? "112" : "" });
     if (k === "batKwh" && cab && q === "260") return setF({ ...f, batKwh: q, inv: "Solis", invKw: "125" });
