@@ -2479,7 +2479,7 @@ function AsideBenefit({ icon, text }: { icon: ReactNode; text: string }) {
 /** المنتج المعتمد المطابق لبند عرض السعر (ألواح / إنفرتر / بطارية / كابينة). */
 function productForQuoteItem(text: string): CatalogProduct | null {
   if (/لوح|ألواح|panel/i.test(text)) return findCatalogProductForSpec(text, "panels");
-  if (/انفرتر|إنفرتر|عاكس|inverter/i.test(text)) return findCatalogProductForSpec(text, "inverters", text);
+  if (/انفرتر|انفيرتر|إنفرتر|إنفيرتر|عاكس|inverter/i.test(text)) return findCatalogProductForSpec(text, "inverters", text);
   if (/بطارية|بطاريات|كابينة|كبينة|تخزين|battery/i.test(text)) return findCatalogProductForSpec(text, "batteries", text);
   return null;
 }
