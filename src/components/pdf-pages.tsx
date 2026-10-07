@@ -51,9 +51,7 @@ function PdfCanvas({ url }: { url: string }) {
     setState("loading");
     (async () => {
       try {
-        const pdfjs = await import("pdfjs-dist");
-        const worker = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-        pdfjs.GlobalWorkerOptions.workerSrc = worker;
+        throw new Error("pdfjs stubbed for diagnosis");
         const doc = await pdfjs.getDocument({ url, disableFontFace: true }).promise;
         const width = el.clientWidth || 360;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
