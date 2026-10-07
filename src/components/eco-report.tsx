@@ -157,8 +157,13 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
   const d = useMemo(() => design(kw, system, target), [kw, system, target]);
   const e0 = econ(d.total, d.genE, d.capex, price0);
   const e1 = results ? (() => { const savedL = results.liters / 365; const newL = Math.max(0, e0.baseL - savedL); return { ...e0, savedL, newL, saving: results.saving, months: results.payback ? results.payback * 12 : null, sav5: results.saving * 5, net5: results.saving * 5 - d.capex, co2: (results.liters * CO2_PER_L) / 1000, cut: e0.baseL > 0 ? Math.min(100, (savedL / e0.baseL) * 100) : 0 }; })() : e0;
+  // دمج منظومة سابقة: الاقتصاد على الوفر الإضافي للمنظومة الجديدة فقط (وفر المنظومتين − وفر السابقة)
+  const prevSys = system?.prev;
+  const dPrev = useMemo(() => (prevSys ? design(kw, { ...prevSys, prev: undefined }) : null), [kw, prevSys]);
+  const ePrev = dPrev ? econ(dPrev.total, dPrev.genE, 0, price0) : null;
+  const eInc = ePrev ? { ...e1, saving: Math.max(0, e0.saving - ePrev.saving) } : e1;
   // استرداد بسيط بدون خصومات: التكلفة ÷ التوفير السنوي
-  const e = { ...e1, months: e1.saving > 0 ? (d.capex / e1.saving) * 12 : null };
+  const e = { ...eInc, months: eInc.saving > 0 ? (d.capex / eInc.saving) * 12 : null, net5: eInc.saving * 5 - d.capex, sav5: eInc.saving * 5 };
   const cleanKwhY = d.total * (d.clean / 100) * 365;
   const lcoe = cleanKwhY > 0 ? d.capex / (cleanKwhY * 20) : 0;
   const roi = d.capex > 0 ? (e.saving / d.capex) * 100 : 0;
@@ -490,9 +495,13 @@ export function ecoSummary(kw: number[], price: number, target: number) {
   return { kwp: d.kwp, panelLabel: d.panelLabel, batKwh: d.batKwh, batLabel: d.batLabel, inv: `${d.invN} × ${d.invBrand} ${d.unit} kW`, invKw: d.unit * d.invN, capex: d.capex, saving: e.saving, months: e.months, cut: e.cut, savedL: e.savedL * 365, offH: 24 - d.genHours, peak: d.peak, total: d.total };
 }
 
-/** نفس محاكاة التقرير لمنظومة جاهزة — حتى تطابق شاشة النتائج التقرير حرفياً. */
-export function ecoSystemSummary(kw: number[], price: number, sys: CustomSystem) {
-  const d = design(kw, sys);
+/** نفس محاكاة التقرير لمنظومة جاهزة — حتى تطابق شاشة النتائج التقرير حرفياً. عند تمرير prev تُحسب الأرقام الاقتصادية على الوفر الإضافي للمنظومة الجديدة فقط. */
+export function ecoSystemSummary(kw: number[], price: number, sys: CustomSystem, prev?: CustomSystem) {
+  const d = design(kw, prev ? { ...sys, prev } : sys);
   const e = econ(d.total, d.genE, d.capex, price);
-  return { total: d.total, clean: d.clean, savedL: e.savedL * 365, saving: e.saving, months: e.months, net5: e.net5, cut: e.cut };
+  if (!prev) return { total: d.total, clean: d.clean, savedL: e.savedL * 365, saving: e.saving, months: e.months, net5: e.net5, cut: e.cut };
+  const dp = design(kw, prev);
+  const ep = econ(dp.total, dp.genE, 0, price);
+  const saving = Math.max(0, e.saving - ep.saving);
+  return { total: d.total, clean: d.clean, savedL: e.savedL * 365, saving, months: saving > 0 ? (d.capex / saving) * 12 : null, net5: saving * 5 - d.capex, cut: e.cut, prevSaving: ep.saving, prevSavedL: ep.savedL * 365 };
 }
