@@ -19,8 +19,9 @@ export function LoadPdfImport({ onApply }: { onApply: (values: string[], client:
   const read = async (f: File) => {
     setBusy(true); setErr(""); setRes(null); setDone(false);
     try {
-      void parseLoadPdf;
-      throw new Error("pdfjs stubbed for diagnosis");
+      const pdfjs = await import("pdfjs-dist");
+      pdfjs.GlobalWorkerOptions.workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+      const r = await parseLoadPdf(await f.arrayBuffer(), pdfjs);
       if (!r.days.length) throw new Error();
       setRes(r); setSel(r.days.map(() => true));
     } catch {
