@@ -362,6 +362,13 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
     return <ProjectNameForm value={project} onChange={setProject} onSubmit={(v) => { setProject(v); try { sessionStorage.setItem(PROJECT_KEY, v); } catch { /* ignore */ } setNamed(true); }} />;
   }
 
+  const pfield = (k: keyof typeof pf, label: string, ph: string, num = false, opt = false) => (
+    <label className="grid gap-1">
+      <span className="text-xs font-bold">{label}{opt && <span className="text-muted-foreground"> (اختياري)</span>}</span>
+      <input inputMode={num ? "decimal" : "text"} value={pf[k]} placeholder={ph} onChange={(e) => setPf({ ...pf, [k]: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+    </label>
+  );
+
   if (!done) {
     return (
       <form onSubmit={(e) => { e.preventDefault(); if (ok) setDone(true); }} className="rounded-lg border border-border bg-muted/35 p-5">
@@ -410,7 +417,26 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
             </div>
           )}
         </div>
-        <button type="submit" disabled={!ok} className="mt-4 w-full rounded-md bg-skyline px-6 py-3 text-sm font-bold text-skyline-foreground disabled:opacity-50 sm:w-auto">احسب الجدوى الاقتصادية</button>
+        {merge && (
+          <div className="mt-5 rounded-md border-2 border-dashed border-primary/50 bg-background p-4">
+            <p className="text-xs font-black">بيانات المنظومة السابقة <span className="font-normal text-muted-foreground">(تُدمج إنتاجيتها مع الجديدة في حساب التغطية؛ تكلفتها لا تدخل في الحسابات الاقتصادية)</span></p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              {pfield("panel", "اسم اللوح", "Suntech")}
+              {pfield("panelW", "قدرة اللوح (W)", "720", true)}
+              {pfield("panelN", "عدد الألواح", "20", true)}
+              {pfield("inv", "اسم الانفرتر", "Deye")}
+              {pfield("invKw", "قدرة الانفرتر (kW)", "12", true)}
+              {pfield("invN", "عدد الانفرترات", "1", true)}
+              {pfield("bat", "اسم البطارية", "Pylontech", false, true)}
+              {pfield("batKwh", "سعة البطارية (kWh)", "16", true, true)}
+              {pfield("batN", "عدد البطاريات", "2", true, true)}
+            </div>
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="submit" disabled={!ok} className="w-full rounded-md bg-skyline px-6 py-3 text-sm font-bold text-skyline-foreground disabled:opacity-50 sm:w-auto">احسب الجدوى الاقتصادية</button>
+          <button type="button" onClick={() => setMerge(!merge)} className={`rounded-md border px-5 py-3 text-sm font-bold transition ${merge ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary/50"}`}>{merge ? "إلغاء الدمج" : "دمج مع منظومة سابقة"}</button>
+        </div>
       </form>
     );
   }
