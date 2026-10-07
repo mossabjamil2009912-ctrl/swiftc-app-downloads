@@ -12,7 +12,7 @@ const C = { sun: "#f5a01e", bat: "#15803d", gen: "#7f1d1d", load: "#e60012", gri
 type Hour = { h: number; load: number; pv: number; direct: number; batOut: number; charge: number; gen: number; soc: number };
 
 export type EcoResults = { dailyKwh: number; yearKwh: number; loadDay: number | null; coverage: number | null; liters: number; saving: number; payback: number | null; cum: number; roi: number; wattCost: string; years: number; rows: { y: number; cum: number }[] };
-export type CustomSystem = { panelName: string; panelW: number; panels: number; invName: string; invKw: number; invN: number; batName: string; batUnit: number; batN: number; capex: number; batKind?: "bat" | "cab" };
+export type CustomSystem = { panelName: string; panelW: number; panels: number; invName: string; invKw: number; invN: number; batName: string; batUnit: number; batN: number; capex: number; batKind?: "bat" | "cab"; prev?: CustomSystem };
 
 function design(kw: number[], sys?: CustomSystem, target?: number) {
   const total = kw.reduce((s, v) => s + v, 0);
@@ -24,17 +24,24 @@ function design(kw: number[], sys?: CustomSystem, target?: number) {
   const pvDay = want !== undefined ? Math.min(day, want) : day;
   const evening = want !== undefined ? Math.max(0, want - day) * (target! >= 0.99 ? 1.12 : 1.05) : evening0;
   const smallBat = peak <= 16 ? 5.12 : BAT_MOD;
+  const prev = sys?.prev; // منظومة سابقة مدمجة: تدخل في الإنتاج والتغطية فقط، لا في التكلفة
   const mods = sys ? sys.batN : Math.max(evening > 0 ? 1 : 0, Math.ceil(evening / DOD / smallBat));
-  const batKwh = sys ? sys.batN * sys.batUnit : mods * smallBat;
+  const newBat = sys ? sys.batN * sys.batUnit : mods * smallBat;
+  const prevBat = prev ? prev.batN * prev.batUnit : 0;
+  const batKwh = newBat + prevBat;
   const racks = Math.ceil(mods / RACK);
   const panels = sys ? sys.panels : Math.max(1, Math.ceil(((pvDay * (want !== undefined ? 1.08 : 1) + evening / 0.95) / (PSH * PR)) * 1000 / PANEL_W));
-  const kwp = (panels * (sys ? sys.panelW : PANEL_W)) / 1000;
+  const newKwp = (panels * (sys ? sys.panelW : PANEL_W)) / 1000;
+  const prevKwp = prev ? (prev.panels * prev.panelW) / 1000 : 0;
+  const kwp = newKwp + prevKwp;
   const unit = sys ? sys.invKw : peak > 100 ? 125 : peak > 20 ? 50 : peak > 12 ? 20 : peak > 8 ? 12 : 8;
   const invN = sys ? sys.invN : Math.max(1, Math.ceil((peak * 1.25) / unit));
   const invBrand = sys ? sys.invName : unit >= 125 ? "Solis" : "Deye";
-  const pvKw = sys ? Math.min(kwp, unit * invN * 1.3) : kwp;
-  const panelLabel = sys ? `${panels} لوح ${sys.panelName} ${sys.panelW}W` : `${panels} لوح سنتك ${PANEL_W}W`;
-  const batLabel = sys ? (batKwh > 0 ? `${mods} ${sys.batKind === "cab" ? (mods > 2 && mods < 11 ? "كبائن" : "كابينة") : "بطارية"} ${sys.batName} ${sys.batUnit}kWh` : "بدون بطاريات") : mods === 0 ? "بدون بطاريات" : peak <= 16 ? `${mods} بطارية Pylontech ${smallBat}kWh` : `${racks} راك × ${mods} بطارية ${BAT_MOD}kWh`;
+  const invTotal = sys ? unit * invN + (prev ? prev.invKw * prev.invN : 0) : unit * invN;
+  const pvKw = sys ? Math.min(kwp, invTotal * 1.3) : kwp;
+  const panelLabel = sys ? `${panels} لوح ${sys.panelName} ${sys.panelW}W${prev && prevKwp > 0 ? ` + ${prev.panels} لوح ${prev.panelName} ${prev.panelW}W` : ""}` : `${panels} لوح سنتك ${PANEL_W}W`;
+  const newBatLabel = sys ? (newBat > 0 ? `${mods} ${sys.batKind === "cab" ? (mods > 2 && mods < 11 ? "كبائن" : "كابينة") : "بطارية"} ${sys.batName} ${sys.batUnit}kWh` : "بدون بطاريات") : mods === 0 ? "بدون بطاريات" : peak <= 16 ? `${mods} بطارية Pylontech ${smallBat}kWh` : `${racks} راك × ${mods} بطارية ${BAT_MOD}kWh`;
+  const batLabel = prev && prevBat > 0 ? `${newBatLabel} + ${prev.batN} بطارية ${prev.batName} ${prev.batUnit}kWh (سابقة)` : newBatLabel;
   // منحنى الإنتاج الشمسي (جيبي من 6 إلى 18)
   const shape = Array.from({ length: 24 }, (_, h) => (h >= 6 && h < 18 ? Math.sin((Math.PI * (h + 0.5 - 6)) / 12) : 0));
   const sSum = shape.reduce((a, b) => a + b, 0);
@@ -150,8 +157,13 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
   const d = useMemo(() => design(kw, system, target), [kw, system, target]);
   const e0 = econ(d.total, d.genE, d.capex, price0);
   const e1 = results ? (() => { const savedL = results.liters / 365; const newL = Math.max(0, e0.baseL - savedL); return { ...e0, savedL, newL, saving: results.saving, months: results.payback ? results.payback * 12 : null, sav5: results.saving * 5, net5: results.saving * 5 - d.capex, co2: (results.liters * CO2_PER_L) / 1000, cut: e0.baseL > 0 ? Math.min(100, (savedL / e0.baseL) * 100) : 0 }; })() : e0;
+  // دمج منظومة سابقة: الاقتصاد على الوفر الإضافي للمنظومة الجديدة فقط (وفر المنظومتين − وفر السابقة)
+  const prevSys = system?.prev;
+  const dPrev = useMemo(() => { if (!prevSys) return null; const { prev: _p, ...rest } = prevSys; return design(kw, rest); }, [kw, prevSys]);
+  const ePrev = dPrev ? econ(dPrev.total, dPrev.genE, 0, price0) : null;
+  const eInc = ePrev ? { ...e1, saving: Math.max(0, e0.saving - ePrev.saving) } : e1;
   // استرداد بسيط بدون خصومات: التكلفة ÷ التوفير السنوي
-  const e = { ...e1, months: e1.saving > 0 ? (d.capex / e1.saving) * 12 : null };
+  const e = { ...eInc, months: eInc.saving > 0 ? (d.capex / eInc.saving) * 12 : null, net5: eInc.saving * 5 - d.capex, sav5: eInc.saving * 5 };
   const cleanKwhY = d.total * (d.clean / 100) * 365;
   const lcoe = cleanKwhY > 0 ? d.capex / (cleanKwhY * 20) : 0;
   const roi = d.capex > 0 ? (e.saving / d.capex) * 100 : 0;
@@ -483,9 +495,13 @@ export function ecoSummary(kw: number[], price: number, target: number) {
   return { kwp: d.kwp, panelLabel: d.panelLabel, batKwh: d.batKwh, batLabel: d.batLabel, inv: `${d.invN} × ${d.invBrand} ${d.unit} kW`, invKw: d.unit * d.invN, capex: d.capex, saving: e.saving, months: e.months, cut: e.cut, savedL: e.savedL * 365, offH: 24 - d.genHours, peak: d.peak, total: d.total };
 }
 
-/** نفس محاكاة التقرير لمنظومة جاهزة — حتى تطابق شاشة النتائج التقرير حرفياً. */
-export function ecoSystemSummary(kw: number[], price: number, sys: CustomSystem) {
-  const d = design(kw, sys);
+/** نفس محاكاة التقرير لمنظومة جاهزة — حتى تطابق شاشة النتائج التقرير حرفياً. عند تمرير prev تُحسب الأرقام الاقتصادية على الوفر الإضافي للمنظومة الجديدة فقط. */
+export function ecoSystemSummary(kw: number[], price: number, sys: CustomSystem, prev?: CustomSystem) {
+  const d = design(kw, prev ? { ...sys, prev } : sys);
   const e = econ(d.total, d.genE, d.capex, price);
-  return { total: d.total, clean: d.clean, savedL: e.savedL * 365, saving: e.saving, months: e.months, net5: e.net5, cut: e.cut };
+  if (!prev) return { total: d.total, clean: d.clean, savedL: e.savedL * 365, saving: e.saving, months: e.months, net5: e.net5, cut: e.cut };
+  const dp = design(kw, prev);
+  const ep = econ(dp.total, dp.genE, 0, price);
+  const saving = Math.max(0, e.saving - ep.saving);
+  return { total: d.total, clean: d.clean, savedL: e.savedL * 365, saving, months: saving > 0 ? (d.capex / saving) * 12 : null, net5: saving * 5 - d.capex, cut: e.cut, prevSaving: ep.saving, prevSavedL: ep.savedL * 365 };
 }

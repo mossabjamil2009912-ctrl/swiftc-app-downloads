@@ -279,26 +279,34 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const [total, setTotal] = useState("");
   const [one, setOne] = useState("");
   const [showReport, setShowReport] = useState(false);
+  const [merge, setMerge] = useState(false);
+  const [pf, setPf] = useState({ panel: "", panelW: "", panelN: "", inv: "", invKw: "", invN: "", bat: "", batKwh: "", batN: "" });
   const n = (v: string) => Math.max(0, Number(v) || 0);
   const kwp = (n(f.panelW) * n(f.panelN)) / 1000;
   const invKw = n(f.invKw) * n(f.invN);
   const batKwh = n(f.batKwh) * n(f.batN);
   const capex = n(f.cost);
   const dp = n(f.price);
-  // الإنتاج اليومي محدود بقدرة الانفرتر
-  const dailyKwh = Math.min(kwp, invKw * 1.3) * PSH * PR;
+  // المنظومة السابقة المدمجة (اختياري): تدخل في الإنتاج والتغطية فقط، تكلفتها لا تدخل في الاقتصاد
+  const prevSys: CustomSystem | undefined = merge ? { panelName: pf.panel, panelW: n(pf.panelW), panels: n(pf.panelN), invName: pf.inv, invKw: n(pf.invKw), invN: n(pf.invN), batName: pf.bat, batUnit: n(pf.batKwh), batN: n(pf.batN), capex: 0 } : undefined;
+  const prevKwp = prevSys ? (prevSys.panelW * prevSys.panels) / 1000 : 0;
+  const prevInvKw = prevSys ? prevSys.invKw * prevSys.invN : 0;
+  const prevBatKwh = prevSys ? prevSys.batUnit * prevSys.batN : 0;
+  const prevOk = !merge || (pf.panel.trim() !== "" && prevKwp > 0 && pf.inv.trim() !== "" && prevInvKw > 0);
+  // الإنتاج اليومي محدود بقدرة الانفرتر — مع الدمج يُحسب للمنظومتين معاً
+  const dailyKwh = Math.min(kwp + prevKwp, (invKw + prevInvKw) * 1.3) * PSH * PR;
   const yearKwh = dailyKwh * 365;
   // توزيع الإجمالي اليومي بنمط واقعي: ساعات النهار ضعف الليل
   const spread = (t: number) => { const w = Array.from({ length: 24 }, (_, h) => (DAY(h) ? 2 : 1)); const s = w.reduce((a, b) => a + b, 0); return w.map((x) => String(Math.round((t * x / s) * 100) / 100)); };
   const loadKw = hrs.map((v) => n(v) * (lm === "diesel" ? KWH_PER_L : 1));
   const loadDay = loadKw.reduce((a, b) => a + b, 0);
   const useLoads = loadDay > 0;
-  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0 && loadDay > 0;
+  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0 && loadDay > 0 && prevOk;
   // الأحمال للتقرير: أحمال العميل إن وُجدت، وإلا حمل افتراضي يساوي إنتاج المنظومة اليومي
   const reportKw = useLoads ? loadKw : spread(Math.max(1, dailyKwh)).map(Number);
   const sys: CustomSystem = { panelName: f.panel, panelW: n(f.panelW), panels: n(f.panelN), invName: f.inv, invKw: n(f.invKw), invN: n(f.invN), batName: f.bat, batUnit: n(f.batKwh), batN: n(f.batN), capex, batKind: batType };
   // نفس محاكاة التقرير: بدون فواقد، المولد لا يشحن البطارية، بدون خصومات صيانة أو تدهور
-  const sm = ecoSystemSummary(reportKw, dp, sys);
+  const sm = ecoSystemSummary(reportKw, dp, sys, prevSys);
   const coverage = useLoads ? Math.round(sm.clean * 10) / 10 : null;
   const liters = Math.round(sm.savedL);
   const saving = Math.round(sm.saving);
@@ -354,6 +362,13 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
     return <ProjectNameForm value={project} onChange={setProject} onSubmit={(v) => { setProject(v); try { sessionStorage.setItem(PROJECT_KEY, v); } catch { /* ignore */ } setNamed(true); }} />;
   }
 
+  const pfield = (k: keyof typeof pf, label: string, ph: string, num = false, opt = false) => (
+    <label className="grid gap-1">
+      <span className="text-xs font-bold">{label}{opt && <span className="text-muted-foreground"> (اختياري)</span>}</span>
+      <input inputMode={num ? "decimal" : "text"} value={pf[k]} placeholder={ph} onChange={(e) => setPf({ ...pf, [k]: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+    </label>
+  );
+
   if (!done) {
     return (
       <form onSubmit={(e) => { e.preventDefault(); if (ok) setDone(true); }} className="rounded-lg border border-border bg-muted/35 p-5">
@@ -402,7 +417,26 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
             </div>
           )}
         </div>
-        <button type="submit" disabled={!ok} className="mt-4 w-full rounded-md bg-skyline px-6 py-3 text-sm font-bold text-skyline-foreground disabled:opacity-50 sm:w-auto">احسب الجدوى الاقتصادية</button>
+        {merge && (
+          <div className="mt-5 rounded-md border-2 border-dashed border-primary/50 bg-background p-4">
+            <p className="text-xs font-black">بيانات المنظومة السابقة <span className="font-normal text-muted-foreground">(تُدمج إنتاجيتها مع الجديدة في حساب التغطية؛ تكلفتها لا تدخل في الحسابات الاقتصادية)</span></p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              {pfield("panel", "اسم اللوح", "Suntech")}
+              {pfield("panelW", "قدرة اللوح (W)", "720", true)}
+              {pfield("panelN", "عدد الألواح", "20", true)}
+              {pfield("inv", "اسم الانفرتر", "Deye")}
+              {pfield("invKw", "قدرة الانفرتر (kW)", "12", true)}
+              {pfield("invN", "عدد الانفرترات", "1", true)}
+              {pfield("bat", "اسم البطارية", "Pylontech", false, true)}
+              {pfield("batKwh", "سعة البطارية (kWh)", "16", true, true)}
+              {pfield("batN", "عدد البطاريات", "2", true, true)}
+            </div>
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="submit" disabled={!ok} className="w-full rounded-md bg-skyline px-6 py-3 text-sm font-bold text-skyline-foreground disabled:opacity-50 sm:w-auto">احسب الجدوى الاقتصادية</button>
+          <button type="button" onClick={() => setMerge(!merge)} className={`rounded-md border px-5 py-3 text-sm font-bold transition ${merge ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary/50"}`}>{merge ? "إلغاء الدمج" : "دمج مع منظومة سابقة"}</button>
+        </div>
       </form>
     );
   }
@@ -418,15 +452,26 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
           <div>التكلفة<br /><b className="tabular-nums">{nf(capex)} $</b></div>
         </div>
       </div>
+      {prevSys && (
+        <div className="rounded-lg border-2 border-dashed border-primary/50 bg-muted/20 p-4 text-sm">
+          <p className="font-black">المنظومة السابقة (مدمجة في الإنتاج والتغطية)</p>
+          <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+            <div>الألواح<br /><b>{pf.panel} — {pf.panelN} × {pf.panelW}W = {nf(prevKwp, 2)} kWp</b></div>
+            <div>الانفرتر<br /><b>{pf.inv} — {pf.invN} × {pf.invKw} kW</b></div>
+            <div>البطاريات<br /><b>{prevBatKwh > 0 ? `${pf.bat} — ${pf.batN} × ${pf.batKwh} kWh` : "بدون"}</b></div>
+          </div>
+        </div>
+      )}
       <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
         <p className="text-sm font-black">نتائج الجدوى الاقتصادية</p>
         <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
           {[
-            ["الإنتاج اليومي المتوقع", `${nf(dailyKwh, 1)} kWh`],
+            [prevSys ? "الإنتاج اليومي المتوقع (المنظومتان)" : "الإنتاج اليومي المتوقع", `${nf(dailyKwh, 1)} kWh`],
             ["الإنتاج السنوي", `${nf(yearKwh)} kWh`],
             ...(useLoads ? [["الحمل اليومي", `${nf(loadDay, 1)} kWh`], ["نسبة تغطية الحمل", `${coverage}%`]] : []),
             ["الديزل الموفّر سنوياً", `${nf(liters)} لتر`],
-            ["التوفير السنوي", `${nf(saving)} $`],
+            ...(prevSys ? [["الوفر السنوي للمنظومة السابقة وحدها", `${nf(Math.round(sm.prevSaving ?? 0))} $`]] : []),
+            [prevSys ? "الوفر السنوي الإضافي (المنظومة الجديدة)" : "التوفير السنوي", `${nf(saving)} $`],
             ["فترة الاسترداد", payback ? `${nf(Math.round(payback * 10) / 10, 1)} شهراً` : "—"],
             ["صافي الوفر التراكمي (5 سنوات)", `${nf(Math.round(sm.net5))} $`],
             [`صافي الربح خلال ${YEARS} سنة`, `${nf(cum)} $`],
@@ -457,7 +502,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
               <button type="button" onClick={() => setShowReport(false)} aria-label="إغلاق" className="grid size-7 place-items-center rounded-full bg-muted text-navy transition hover:bg-border"><X className="size-4" /></button>
             </div>
             <div className="flex-1 overflow-auto bg-muted p-2 sm:p-4">
-              <EcoReport kw={reportKw} price={dp} project={project} system={sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
+              <EcoReport kw={reportKw} price={dp} project={project} system={prevSys ? { ...sys, prev: prevSys } : sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
             </div>
           </div>
         </div>,
