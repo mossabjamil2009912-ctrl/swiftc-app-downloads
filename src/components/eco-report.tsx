@@ -159,7 +159,7 @@ export function EcoReport({ kw, price: price0, onBuy, onEdit, onSales, system, p
   const e1 = results ? (() => { const savedL = results.liters / 365; const newL = Math.max(0, e0.baseL - savedL); return { ...e0, savedL, newL, saving: results.saving, months: results.payback ? results.payback * 12 : null, sav5: results.saving * 5, net5: results.saving * 5 - d.capex, co2: (results.liters * CO2_PER_L) / 1000, cut: e0.baseL > 0 ? Math.min(100, (savedL / e0.baseL) * 100) : 0 }; })() : e0;
   // دمج منظومة سابقة: الاقتصاد على الوفر الإضافي للمنظومة الجديدة فقط (وفر المنظومتين − وفر السابقة)
   const prevSys = system?.prev;
-  const dPrev = useMemo(() => (prevSys ? design(kw, { ...prevSys, prev: undefined }) : null), [kw, prevSys]);
+  const dPrev = useMemo(() => { if (!prevSys) return null; const { prev: _p, ...rest } = prevSys; return design(kw, rest); }, [kw, prevSys]);
   const ePrev = dPrev ? econ(dPrev.total, dPrev.genE, 0, price0) : null;
   const eInc = ePrev ? { ...e1, saving: Math.max(0, e0.saving - ePrev.saving) } : e1;
   // استرداد بسيط بدون خصومات: التكلفة ÷ التوفير السنوي
