@@ -279,26 +279,34 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
   const [total, setTotal] = useState("");
   const [one, setOne] = useState("");
   const [showReport, setShowReport] = useState(false);
+  const [merge, setMerge] = useState(false);
+  const [pf, setPf] = useState({ panel: "", panelW: "", panelN: "", inv: "", invKw: "", invN: "", bat: "", batKwh: "", batN: "" });
   const n = (v: string) => Math.max(0, Number(v) || 0);
   const kwp = (n(f.panelW) * n(f.panelN)) / 1000;
   const invKw = n(f.invKw) * n(f.invN);
   const batKwh = n(f.batKwh) * n(f.batN);
   const capex = n(f.cost);
   const dp = n(f.price);
-  // الإنتاج اليومي محدود بقدرة الانفرتر
-  const dailyKwh = Math.min(kwp, invKw * 1.3) * PSH * PR;
+  // المنظومة السابقة المدمجة (اختياري): تدخل في الإنتاج والتغطية فقط، تكلفتها لا تدخل في الاقتصاد
+  const prevSys: CustomSystem | undefined = merge ? { panelName: pf.panel, panelW: n(pf.panelW), panels: n(pf.panelN), invName: pf.inv, invKw: n(pf.invKw), invN: n(pf.invN), batName: pf.bat, batUnit: n(pf.batKwh), batN: n(pf.batN), capex: 0 } : undefined;
+  const prevKwp = prevSys ? (prevSys.panelW * prevSys.panels) / 1000 : 0;
+  const prevInvKw = prevSys ? prevSys.invKw * prevSys.invN : 0;
+  const prevBatKwh = prevSys ? prevSys.batUnit * prevSys.batN : 0;
+  const prevOk = !merge || (pf.panel.trim() !== "" && prevKwp > 0 && pf.inv.trim() !== "" && prevInvKw > 0);
+  // الإنتاج اليومي محدود بقدرة الانفرتر — مع الدمج يُحسب للمنظومتين معاً
+  const dailyKwh = Math.min(kwp + prevKwp, (invKw + prevInvKw) * 1.3) * PSH * PR;
   const yearKwh = dailyKwh * 365;
   // توزيع الإجمالي اليومي بنمط واقعي: ساعات النهار ضعف الليل
   const spread = (t: number) => { const w = Array.from({ length: 24 }, (_, h) => (DAY(h) ? 2 : 1)); const s = w.reduce((a, b) => a + b, 0); return w.map((x) => String(Math.round((t * x / s) * 100) / 100)); };
   const loadKw = hrs.map((v) => n(v) * (lm === "diesel" ? KWH_PER_L : 1));
   const loadDay = loadKw.reduce((a, b) => a + b, 0);
   const useLoads = loadDay > 0;
-  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0 && loadDay > 0;
+  const ok = f.panel.trim() && kwp > 0 && f.inv.trim() && invKw > 0 && capex > 0 && loadDay > 0 && prevOk;
   // الأحمال للتقرير: أحمال العميل إن وُجدت، وإلا حمل افتراضي يساوي إنتاج المنظومة اليومي
   const reportKw = useLoads ? loadKw : spread(Math.max(1, dailyKwh)).map(Number);
   const sys: CustomSystem = { panelName: f.panel, panelW: n(f.panelW), panels: n(f.panelN), invName: f.inv, invKw: n(f.invKw), invN: n(f.invN), batName: f.bat, batUnit: n(f.batKwh), batN: n(f.batN), capex, batKind: batType };
   // نفس محاكاة التقرير: بدون فواقد، المولد لا يشحن البطارية، بدون خصومات صيانة أو تدهور
-  const sm = ecoSystemSummary(reportKw, dp, sys);
+  const sm = ecoSystemSummary(reportKw, dp, sys, prevSys);
   const coverage = useLoads ? Math.round(sm.clean * 10) / 10 : null;
   const liters = Math.round(sm.savedL);
   const saving = Math.round(sm.saving);
