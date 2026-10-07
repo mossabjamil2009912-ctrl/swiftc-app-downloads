@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 const PdfPages = lazy(() => import("@/components/pdf-pages"));
 import { ArrowRight, Search, BatteryCharging, Check, ChevronDown, Container, Copy, Download, Eye, FileText, Gauge, Info, Layers, Link2, ListChecks, MessageCircle, Play, Share2, Sparkles, Sun, Users, Wrench, X, Zap } from "lucide-react";
-import QRCode from "qrcode";
+import { QRCodeSVG } from "qrcode.react";
 import { createPortal } from "react-dom";
 import { CATEGORIES, findProduct, matchCompatibleProducts, productsByCategory, quickSpecs, type Product, type ProductCategory, type ProductFile } from "@/lib/products-data";
 import { isVoiceOn, isVoicePlatform, prepareSpeech, silenceNextScreen, speakScreen, speakScreenAfterCurrent, stopSpeaking } from "@/lib/voice-guide";
@@ -439,18 +439,10 @@ function PdfViewer({ file, onClose }: { file: ProductFile; onClose: () => void }
 
 /** نافذة المشاركة: واتساب، مشاركة الجهاز، نسخ الملخص، ورمز QR. */
 function ShareSheet({ product, onClose }: { product: Product; onClose: () => void }) {
-  const [qr, setQr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const url = productUrl(product.id);
   const summary = specSummaryText(product);
 
-  useEffect(() => {
-    let alive = true;
-    QRCode.toDataURL(url, { margin: 1, width: 420, color: { dark: "#0b2239", light: "#ffffff" } })
-      .then((d) => { if (alive) setQr(d); })
-      .catch(() => { if (alive) setQr(null); });
-    return () => { alive = false; };
-  }, [url]);
 
   const share = async () => {
     try {
@@ -472,7 +464,7 @@ function ShareSheet({ product, onClose }: { product: Product; onClose: () => voi
         </div>
         <div className="space-y-3 p-4">
           <div className="grid place-items-center rounded-xl border border-border bg-white p-3">
-            {qr ? <img src={qr} alt="رمز QR لصفحة المنتج" className="size-40 object-contain" /> : <span className="grid size-40 place-items-center text-xs text-muted-foreground">جارٍ توليد الرمز…</span>}
+            <QRCodeSVG value={url} size={160} marginSize={2} fgColor="#0b2239" bgColor="#ffffff" className="size-40" title="رمز QR لصفحة المنتج" />
           </div>
           <p className="text-center text-[11px] leading-5 text-muted-foreground">امسح الرمز بالجوال لفتح مواصفات {product.model} وملفاته الرسمية مباشرة.</p>
           <div className="grid gap-2">
