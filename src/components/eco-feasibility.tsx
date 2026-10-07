@@ -452,15 +452,26 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
           <div>التكلفة<br /><b className="tabular-nums">{nf(capex)} $</b></div>
         </div>
       </div>
+      {prevSys && (
+        <div className="rounded-lg border-2 border-dashed border-primary/50 bg-muted/20 p-4 text-sm">
+          <p className="font-black">المنظومة السابقة (مدمجة في الإنتاج والتغطية)</p>
+          <div className="mt-2 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+            <div>الألواح<br /><b>{pf.panel} — {pf.panelN} × {pf.panelW}W = {nf(prevKwp, 2)} kWp</b></div>
+            <div>الانفرتر<br /><b>{pf.inv} — {pf.invN} × {pf.invKw} kW</b></div>
+            <div>البطاريات<br /><b>{prevBatKwh > 0 ? `${pf.bat} — ${pf.batN} × ${pf.batKwh} kWh` : "بدون"}</b></div>
+          </div>
+        </div>
+      )}
       <div className="rounded-lg border-2 border-primary bg-primary/5 p-4">
         <p className="text-sm font-black">نتائج الجدوى الاقتصادية</p>
         <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
           {[
-            ["الإنتاج اليومي المتوقع", `${nf(dailyKwh, 1)} kWh`],
+            [prevSys ? "الإنتاج اليومي المتوقع (المنظومتان)" : "الإنتاج اليومي المتوقع", `${nf(dailyKwh, 1)} kWh`],
             ["الإنتاج السنوي", `${nf(yearKwh)} kWh`],
             ...(useLoads ? [["الحمل اليومي", `${nf(loadDay, 1)} kWh`], ["نسبة تغطية الحمل", `${coverage}%`]] : []),
             ["الديزل الموفّر سنوياً", `${nf(liters)} لتر`],
-            ["التوفير السنوي", `${nf(saving)} $`],
+            ...(prevSys ? [["الوفر السنوي للمنظومة السابقة وحدها", `${nf(Math.round(sm.prevSaving ?? 0))} $`]] : []),
+            [prevSys ? "الوفر السنوي الإضافي (المنظومة الجديدة)" : "التوفير السنوي", `${nf(saving)} $`],
             ["فترة الاسترداد", payback ? `${nf(Math.round(payback * 10) / 10, 1)} شهراً` : "—"],
             ["صافي الوفر التراكمي (5 سنوات)", `${nf(Math.round(sm.net5))} $`],
             [`صافي الربح خلال ${YEARS} سنة`, `${nf(cum)} $`],
@@ -491,7 +502,7 @@ export function EcoSystemStudy({ onSales }: { onSales?: () => void }) {
               <button type="button" onClick={() => setShowReport(false)} aria-label="إغلاق" className="grid size-7 place-items-center rounded-full bg-muted text-navy transition hover:bg-border"><X className="size-4" /></button>
             </div>
             <div className="flex-1 overflow-auto bg-muted p-2 sm:p-4">
-              <EcoReport kw={reportKw} price={dp} project={project} system={sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
+              <EcoReport kw={reportKw} price={dp} project={project} system={prevSys ? { ...sys, prev: prevSys } : sys} onEdit={() => { setShowReport(false); setDone(false); }} onSales={onSales} />
             </div>
           </div>
         </div>,
