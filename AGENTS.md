@@ -26,3 +26,4 @@
 
 - Offline Windows build: Electron + local node-server (vite.electron.config.ts, electron/main.cjs); packaged zip is delivered via Files, not the repo (too large). Why: full offline media.
 - Fixed Arabic voice lines are pre-generated to public/audio (tools/voice/gen.ts, index.json) and played before calling /api/tts. Why: voice works offline.
+- Every dependency reachable from an SSR route must be ESM-only: a CommonJS package anywhere in the server bundle (even behind a lazy import) makes the deployed Worker throw on every request, so use ESM alternatives like `qrcode.react` instead of `qrcode`. Why: the Worker runtime leaves `import.meta.url` undefined, so the generated `createRequire(import.meta.url)` helper chunk crashes.
